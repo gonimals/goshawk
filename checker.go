@@ -3,27 +3,20 @@ package main
 import (
 	"fmt"
 	"log"
+	"log/slog"
+	"net"
 	"net/http"
 	"os/exec"
 	"regexp"
+	"strings"
 	"time"
-
-	"github.com/go-ping/ping" // TODO: replace this with TCP test
 )
-
-/*
-conn, err := net.DialTimeout("tcp", "8.8.8.8:80", time.Second*2)
-if err == nil {
-    conn.Close()
-    // Host is up!
-}
-*/
 
 func checkService(service Service, notificationURL string) {
 	var err error
 	switch service.Action.Type {
-	case "ping":
-		err = checkPing(service.Action.Ping)
+	case "tcp":
+		err = checkTCP(service.Action.TCP)
 	case "web_request":
 		err = checkWebRequest(service.Action.WebRequest)
 	case "bash_script":
@@ -40,27 +33,21 @@ func checkService(service Service, notificationURL string) {
 	}
 }
 
-func checkPing(action *PingAction) error {
-	pinger, err := ping.NewPinger(action.Host)
-	if err != nil {
-		return err
+func checkTCP(action *TCPAction) error {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			slog.Error("panic running check", "recovered", recovered)
+		}
+	}()
+	conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", action.Host, action.Port), time.Second*2)
+	if err == nil {
+		conn.Close()
 	}
-	pinger.Count = 3
-	pinger.Timeout = time.Second * 5
-	pinger.SetPrivileged(true) // this may require root privileges
-	err = pinger.Run()
-	if err != nil {
-		return err
-	}
-	stats := pinger.Statistics()
-	if stats.PacketsRecv == 0 {
-		return fmt.Errorf("no packets received")
-	}
-	return nil
+	return err
 }
 
 func checkWebRequest(action *WebRequestAction) error {
-	req, err := http.NewRequest(action.Method, action.URL, nil)
+	req, err := http.NewRequest(action.Method, action.URL, strings.NewReader(action.Body))
 	if err != nil {
 		return err
 	}

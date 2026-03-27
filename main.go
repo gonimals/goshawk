@@ -8,15 +8,18 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"time"
 )
 
+// Now implement a go routine which checks a multithreaded map and launches notifications only when
+// a service has been down for the maximum allowed time
+
 func main() {
 	configFile := flag.String("config", "config.json", "Configuration file")
 	configHash := flag.String("hash", "", "SHA256 hash of the configuration file")
-	passphrase := flag.String("passphrase", "", "Passphrase to confirm who is online")
 	flag.Parse()
 
 	config, err := loadConfig(*configFile, *configHash)
@@ -25,11 +28,14 @@ func main() {
 	}
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if *passphrase != "" {
-			if r.URL.Query().Get("passphrase") != *passphrase {
-				http.Error(w, "Unauthorized", http.StatusUnauthorized)
-				return
-			}
+		if config == nil {
+			fmt.Fprint(w, "no config mode")
+			return
+		}
+		providedKey := r.URL.Query().Get("key")
+		authHost := config.HostKeys[providedKey]
+		if authHost != "" {
+			slog.Info("host online request", "host", authHost)
 		}
 		fmt.Fprint(w, "check ok")
 	})
@@ -67,8 +73,8 @@ func loadConfig(configFile, expectedHash string) (*Config, error) {
 	hash := sha256.Sum256(data)
 	actualHash := hex.EncodeToString(hash[:])
 
-	if expectedHash != "" && actualHash != expectedHash {
-		fmt.Printf("Calculated SHA256: %s\n", actualHash)
+	if actualHash != expectedHash {
+		slog.Warn("config hash mismatch", "calculatedHash", actualHash)
 		return nil, fmt.Errorf("configuration hash mismatch")
 	}
 
@@ -79,5 +85,3 @@ func loadConfig(configFile, expectedHash string) (*Config, error) {
 
 	return &config, nil
 }
-
-
