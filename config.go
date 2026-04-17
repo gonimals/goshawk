@@ -1,38 +1,39 @@
 package main
 
-type Config struct {
-	Services        []Service         `json:"services"`
-	NotificationURL string            `json:"notification_url"`
-	HostKeys        map[string]string `json:"host_keys"`
-}
+import (
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"io"
+	"log/slog"
+	"os"
+)
 
-type Service struct {
-	Name   string `json:"name"`
-	Action Action `json:"action"`
-}
+func loadConfig(configFile, expectedHash string) (*Config, error) {
+	file, err := os.Open(configFile)
+	if err != nil {
+		return nil, fmt.Errorf("could not open config file: %w", err)
+	}
+	defer file.Close()
 
-type Action struct {
-	Type       string            `json:"type"`
-	TCP        *TCPAction        `json:"tcp,omitempty"`
-	WebRequest *WebRequestAction `json:"web_request,omitempty"`
-	BashScript *BashScriptAction `json:"bash_script,omitempty"`
-	Frequency  int               `json:"frequency"`
-	MaxFails   int               `json:"max_fails"`
-}
+	data, err := io.ReadAll(file)
+	if err != nil {
+		return nil, fmt.Errorf("could not read config file: %w", err)
+	}
 
-type TCPAction struct {
-	Host string `json:"host"`
-	Port int    `json:"port"`
-}
+	hash := sha256.Sum256(data)
+	actualHash := hex.EncodeToString(hash[:])
 
-type WebRequestAction struct {
-	URL            string `json:"url"`
-	Method         string `json:"method"`
-	Body           string `json:"body,omitempty"`
-	ExpectedStatus int    `json:"expected_status"`
-}
+	if actualHash != expectedHash {
+		slog.Warn("config hash mismatch", "calculatedHash", actualHash)
+		return nil, fmt.Errorf("configuration hash mismatch")
+	}
 
-type BashScriptAction struct {
-	Code                 string `json:"code"`
-	ExpectedOutputRegexp string `json:"expected_output_regexp"`
+	var config Config
+	if err := json.Unmarshal(data, &config); err != nil {
+		return nil, fmt.Errorf("could not parse config file: %w", err)
+	}
+
+	return &config, nil
 }

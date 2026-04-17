@@ -1,0 +1,28 @@
+{
+  "listen_address": "127.0.0.1:12345",
+  "notification_url": "",
+  "services": {
+    "localhost": {
+        "type": "tcp",
+        "tcp": {
+          "host": "127.0.0.1",
+          "port": 22
+        }
+      },
+      "local_web": {
+        "type": "web_request",
+        "web_request": {
+          "url": "http://127.0.0.1:12345/",
+          "method": "GET",
+          "expected_status": 200
+        }
+      },
+      "bash_echo": {
+        "type": "bash_script",
+        "bash_script": {
+          "code": "echo 'hello world'",
+          "expected_output_regexp": "hello"
+        }
+      }
+  }
+}

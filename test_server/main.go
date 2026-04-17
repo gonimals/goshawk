@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 )
 
@@ -11,11 +11,11 @@ func main() {
 	http.HandleFunc("/notify", func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
-			log.Printf("Error reading body: %v", err)
+			slog.Warn("error reading body", "error", err)
 			http.Error(w, "Error reading request body", http.StatusInternalServerError)
 			return
 		}
-		log.Printf("Notification received: %s", body)
+		slog.Info("notification received", "body", body)
 		fmt.Fprint(w, "notification received")
 	})
 
@@ -23,5 +23,5 @@ func main() {
 		fmt.Fprint(w, "ok")
 	})
 
-	log.Fatal(http.ListenAndServe(":8081", nil))
+	slog.Error("web server exited", "error", http.ListenAndServe(":8081", nil))
 }

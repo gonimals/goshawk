@@ -1,21 +1,10 @@
 package main
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
-	"encoding/json"
 	"flag"
-	"fmt"
-	"io"
-	"log"
 	"log/slog"
-	"net/http"
 	"os"
-	"time"
 )
-
-// Now implement a go routine which checks a multithreaded map and launches notifications only when
-// a service has been down for the maximum allowed time
 
 func main() {
 	configFile := flag.String("config", "config.json", "Configuration file")
@@ -24,64 +13,12 @@ func main() {
 
 	config, err := loadConfig(*configFile, *configHash)
 	if err != nil {
-		log.Printf("Error loading configuration: %v", err)
+		slog.Error("Error loading configuration", "error", err)
+		os.Exit(1)
 	}
-
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if config == nil {
-			fmt.Fprint(w, "no config mode")
-			return
-		}
-		providedKey := r.URL.Query().Get("key")
-		authHost := config.HostKeys[providedKey]
-		if authHost != "" {
-			slog.Info("host online request", "host", authHost)
-		}
-		fmt.Fprint(w, "check ok")
-	})
-
-	go func() {
-		log.Fatal(http.ListenAndServe(":8080", nil))
-	}()
-
-	if config != nil {
-		ticker := time.NewTicker(60 * time.Second)
-		defer ticker.Stop()
-
-		for range ticker.C {
-			for _, service := range config.Services {
-				go checkService(service, config.NotificationURL)
-			}
-		}
-	}
+	runtimeConfig = config
+	go activeCheckerRoutine()
+	go passiveCheckerRoutine()
 
 	select {}
-}
-
-func loadConfig(configFile, expectedHash string) (*Config, error) {
-	file, err := os.Open(configFile)
-	if err != nil {
-		return nil, fmt.Errorf("could not open config file: %w", err)
-	}
-	defer file.Close()
-
-	data, err := io.ReadAll(file)
-	if err != nil {
-		return nil, fmt.Errorf("could not read config file: %w", err)
-	}
-
-	hash := sha256.Sum256(data)
-	actualHash := hex.EncodeToString(hash[:])
-
-	if actualHash != expectedHash {
-		slog.Warn("config hash mismatch", "calculatedHash", actualHash)
-		return nil, fmt.Errorf("configuration hash mismatch")
-	}
-
-	var config Config
-	if err := json.Unmarshal(data, &config); err != nil {
-		return nil, fmt.Errorf("could not parse config file: %w", err)
-	}
-
-	return &config, nil
 }
