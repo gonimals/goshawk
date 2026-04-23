@@ -1,5 +1,6 @@
 {
   "notification_url": "http://localhost:8081/notify",
+  "listen_address": "127.0.0.1:12345",
   "services": {
     "google": {
         "type": "ping",

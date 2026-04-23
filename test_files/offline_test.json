@@ -1,15 +1,19 @@
 {
   "listen_address": "127.0.0.1:12345",
   "notification_url": "",
+  "authenticated_hosts": {
+    "authorized_host": "12345678",
+    "unexistent": "09876543"
+  },
+  "host_max_seconds": 3,
   "services": {
-    "localhost": {
+    "ssh_port": {
         "type": "tcp",
         "tcp": {
-          "host": "127.0.0.1",
-          "port": 22
+          "address": "127.0.0.1:22"
         }
       },
-      "local_web": {
+      "web_12345": {
         "type": "web_request",
         "web_request": {
           "url": "http://127.0.0.1:12345/",
