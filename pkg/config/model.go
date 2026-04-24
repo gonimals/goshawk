@@ -32,6 +32,7 @@ type AssetStatus struct {
 	IsActive         bool
 	Notified         bool
 	HostAddress      string
+	DownReason       string
 }
 
 type Service struct {

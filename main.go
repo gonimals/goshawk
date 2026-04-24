@@ -13,7 +13,7 @@ import (
 
 func main() {
 	configFile := flag.String("config", "config.json", "Configuration file")
-	configHash := flag.String("hash", "", "SHA256 hash of the configuration file")
+	configHash := flag.String("hash", "", "Expected SHA256 hash of the configuration file")
 	verboseMode := flag.Bool("v", false, "Enable verbose logging")
 	flag.Parse()
 

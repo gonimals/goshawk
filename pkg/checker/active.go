@@ -69,25 +69,38 @@ func (ac *ActiveChecker) checkService(serviceName string) {
 		status.ConsecutiveFails = 0
 		status.Notified = false
 		status.LastChange = time.Now()
+		if err != nil {
+			status.DownReason = err.Error()
+		} else {
+			status.DownReason = ""
+		}
 	}
 	if status.Notified {
 		return
 	}
-	defer func() {
-		if !ac.config.ServicesStatus.CompareAndSwap(serviceName, oldStatus, status) {
-			slog.Warn("error saving current status", "error", err, "service", serviceName)
-		}
-	}()
 
 	if isActive {
-		go ac.notifier.Notify(fmt.Sprintf(templateTitle, serviceName, "up"), "ok")
 		status.Notified = true
+		if ac.config.ServicesStatus.CompareAndSwap(serviceName, oldStatus, status) {
+			go ac.notifier.Notify(fmt.Sprintf(templateTitle, serviceName, "up"), "ok")
+		} else {
+			slog.Warn("error saving current status", "error", err, "service", serviceName)
+		}
 		return
 	}
 	status.ConsecutiveFails++
 	status.LastChange = time.Now()
-	if status.ConsecutiveFails >= service.MaxFails {
-		go ac.notifier.Notify(fmt.Sprintf(templateTitle, serviceName, "down"), "down")
-		status.Notified = true
+	if !ac.config.ServicesStatus.CompareAndSwap(serviceName, oldStatus, status) {
+		slog.Warn("error saving current status", "error", err, "service", serviceName)
+		return
 	}
+	if status.ConsecutiveFails < service.MaxFails {
+		return
+	}
+	status.Notified = true
+	if !ac.config.ServicesStatus.CompareAndSwap(serviceName, oldStatus, status) {
+		slog.Warn("error saving current status", "error", err, "service", serviceName)
+		return
+	}
+	go ac.notifier.Notify(fmt.Sprintf(templateTitle, serviceName, "down"), fmt.Sprintf("down after %d consecutive failures with initial reason: %s", status.ConsecutiveFails, status.DownReason))
 }

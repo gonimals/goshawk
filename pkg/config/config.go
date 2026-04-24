@@ -27,7 +27,9 @@ func LoadConfig(configFile, expectedHash string) (*Config, error) {
 	hash := sha256.Sum256(data)
 	actualHash := hex.EncodeToString(hash[:])
 
-	if actualHash != expectedHash {
+	if len(expectedHash) == 0 {
+		slog.Warn("no expected hash provided, skipping hash check")
+	} else if actualHash[:len(expectedHash)] != expectedHash {
 		slog.Warn("config hash mismatch", "calculatedHash", actualHash)
 		return nil, fmt.Errorf("configuration hash mismatch")
 	}
