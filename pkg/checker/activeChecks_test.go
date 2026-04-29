@@ -51,3 +51,29 @@ func TestCheckWebRequest(t *testing.T) {
 	}
 
 }
+
+func TestCheckBashScript(t *testing.T) {
+	err := checker.CheckBashScript(&config.BashScriptAction{
+		Code:                 "echo 'hello world'",
+		ExpectedOutputRegexp: "^hello world\n$",
+	})
+	if err != nil {
+		t.Fatalf("error checking bash script: %v", err)
+	}
+
+	err = checker.CheckBashScript(&config.BashScriptAction{
+		Code:                 "echo 'hello world'",
+		ExpectedOutputRegexp: "^goodbye\n$",
+	})
+	if err == nil {
+		t.Fatalf("expected error checking bash script with wrong output")
+	}
+
+	err = checker.CheckBashScript(&config.BashScriptAction{
+		Code:                 "exit 1",
+		ExpectedOutputRegexp: ".*",
+	})
+	if err == nil {
+		t.Fatalf("expected error checking bash script that fails")
+	}
+}

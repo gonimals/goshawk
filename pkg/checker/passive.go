@@ -97,10 +97,9 @@ func (pc *PassiveChecker) updateHostEntry(host, remoteAddress string) {
 	status := oldStatus
 	status.LastCheck = time.Now()
 	if !status.IsActive || status.HostAddress != remoteAddress {
-		go pc.notifier.Notify(fmt.Sprintf(templateTitle, host, "up"), "up with address "+remoteAddress)
-		status.Notified = true
 		status.IsActive = true
 		status.HostAddress = remoteAddress
+		go pc.notifier.Notify(status)
 	}
 	if !pc.config.HostsStatus.CompareAndSwap(host, oldStatus, status) {
 		slog.Warn("error saving current status", "host", host)
@@ -119,7 +118,7 @@ func (pc *PassiveChecker) checkHostOnline(host string) {
 	slog.Debug("passive checker detected host down", "host", host, "lastCheck", oldStatus.LastCheck)
 	status.IsActive = false
 	if pc.config.HostsStatus.CompareAndSwap(host, oldStatus, status) {
-		go pc.notifier.Notify(fmt.Sprintf(templateTitle, host, "down"), "down")
+		go pc.notifier.Notify(status)
 	} else {
 		slog.Warn("error setting host as inactive", "host", host)
 	}

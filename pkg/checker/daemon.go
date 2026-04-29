@@ -7,9 +7,6 @@ import (
 	"github.com/gonimals/goshawk/pkg/notifier"
 )
 
-const templateTitle = "Service %s is %s"
-const templateBody = "Service %s of type %s is %s"
-
 type baseDaemon struct {
 	wg           *sync.WaitGroup
 	err          error

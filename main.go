@@ -29,9 +29,9 @@ func main() {
 
 	var sender notifier.Notifier
 	if config.NotificationURL == "" {
-		sender = notifier.NewLogNotifier()
+		sender = notifier.NewLogNotifier(config)
 	} else {
-		sender = notifier.NewPostNotifier(config.NotificationURL)
+		sender = notifier.NewPostNotifier(config)
 	}
 
 	activeChecker := checker.NewActiveChecker(config, sender)

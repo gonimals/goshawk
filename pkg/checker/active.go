@@ -82,7 +82,7 @@ func (ac *ActiveChecker) checkService(serviceName string) {
 	if isActive {
 		status.Notified = true
 		if ac.config.ServicesStatus.CompareAndSwap(serviceName, oldStatus, status) {
-			go ac.notifier.Notify(fmt.Sprintf(templateTitle, serviceName, "up"), "ok")
+			go ac.notifier.Notify(status)
 		} else {
 			slog.Warn("error saving current status", "error", err, "service", serviceName)
 		}
@@ -102,5 +102,5 @@ func (ac *ActiveChecker) checkService(serviceName string) {
 		slog.Warn("error saving current status", "error", err, "service", serviceName)
 		return
 	}
-	go ac.notifier.Notify(fmt.Sprintf(templateTitle, serviceName, "down"), fmt.Sprintf("down after %d consecutive failures with initial reason: %s", status.ConsecutiveFails, status.DownReason))
+	go ac.notifier.Notify(status)
 }

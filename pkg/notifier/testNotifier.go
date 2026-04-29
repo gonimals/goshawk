@@ -1,8 +1,11 @@
 package notifier
 
 import (
+	"encoding/json"
 	"fmt"
 	"log/slog"
+
+	"github.com/gonimals/goshawk/pkg/config"
 )
 
 type TestNotifier struct {
@@ -13,9 +16,12 @@ func NewTestNotifier() Notifier {
 	return &TestNotifier{}
 }
 
-func (tn *TestNotifier) Notify(title, body string) error {
-	slog.Debug("New Notification", "title", title, "body", body)
-	tn.NotificationLog = append(tn.NotificationLog,
-		fmt.Sprintf("\"title\": \"%s\", \"body\": \"%s\"", title, body))
+func (tn *TestNotifier) Notify(data config.AssetStatus) error {
+	slog.Debug("New Notification", "data", data)
+	dataJson, err := json.Marshal(data)
+	if err != nil {
+		return fmt.Errorf("could not marshal notification payload: %v", err)
+	}
+	tn.NotificationLog = append(tn.NotificationLog, string(dataJson))
 	return nil
 }

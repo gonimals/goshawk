@@ -5,19 +5,26 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"github.com/gonimals/goshawk/pkg/config"
 )
 
 type PostNotifier struct {
 	notificationUrl string
+	templateNotifier
 }
 
-func NewPostNotifier(notificationUrl string) Notifier {
+func NewPostNotifier(cfg *config.Config) Notifier {
 	return &PostNotifier{
-		notificationUrl: notificationUrl,
+		notificationUrl: cfg.NotificationURL,
+		templateNotifier: templateNotifier{
+			cfg: cfg,
+		},
 	}
 }
 
-func (pn *PostNotifier) Notify(title, body string) error {
+func (pn *PostNotifier) Notify(data config.AssetStatus) error {
+	title, body := pn.parseMessages(data)
 	payload := map[string]string{
 		"title": title,
 		"body":  body,

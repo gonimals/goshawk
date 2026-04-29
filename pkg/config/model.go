@@ -1,6 +1,7 @@
 package config
 
 import (
+	"html/template"
 	"time"
 
 	"github.com/gonimals/goshawk/pkg/util"
@@ -20,12 +21,20 @@ type Config struct {
 	//Services defines the active checks this checker will be launching
 	Services map[string]Service `json:"services"`
 
+	//TemplateTitle accepts attributes from AssetStatus
+	TemplateTitle       string             `json:"template_title"`
+	TemplateTitleParsed *template.Template `json:"-"`
+	//TemplateBody accepts attributes from AssetStatus
+	TemplateBody       string             `json:"template_body"`
+	TemplateBodyParsed *template.Template `json:"-"`
+
 	ServicesStatus *util.SyncMap[string, AssetStatus] `json:"-"`
 	HostsStatus    *util.SyncMap[string, AssetStatus] `json:"-"`
 }
 
 // AssetStatus holds the state of a service or a host
 type AssetStatus struct {
+	ServiceName      string
 	ConsecutiveFails int
 	LastCheck        time.Time
 	LastChange       time.Time

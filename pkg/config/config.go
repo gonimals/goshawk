@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io"
 	"log/slog"
 	"os"
@@ -34,10 +35,24 @@ func LoadConfig(configFile, expectedHash string) (*Config, error) {
 		return nil, fmt.Errorf("configuration hash mismatch")
 	}
 
+	return ParseConfigBytes(data)
+}
+
+func ParseConfigBytes(data []byte) (*Config, error) {
 	var config Config
-	if err := json.Unmarshal(data, &config); err != nil {
+	var err error
+	if err = json.Unmarshal(data, &config); err != nil {
 		return nil, fmt.Errorf("could not parse config file: %w", err)
 	}
+	config.TemplateTitleParsed, err = template.New("title").Parse(config.TemplateTitle)
+	if err != nil {
+		return nil, fmt.Errorf("could not parse template title: %w", err)
+	}
+	config.TemplateBodyParsed, err = template.New("body").Parse(config.TemplateBody)
+	if err != nil {
+		return nil, fmt.Errorf("could not parse template body down: %w", err)
+	}
+
 	config.HostKeys = make(map[string]string)
 	for host, key := range config.AuthenticatedHosts {
 		config.HostKeys[key] = host

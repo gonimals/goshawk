@@ -1,5 +1,7 @@
 package notifier
 
+import "github.com/gonimals/goshawk/pkg/config"
+
 type Notifier interface {
-	Notify(title, body string) error
+	Notify(data config.AssetStatus) error
 }
