@@ -41,7 +41,7 @@ func TestPassiveChecker(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	w := httptest.NewRecorder()
 	pc.httpPassiveEndpoint(w, req)
-	
+
 	resp := w.Result()
 	body, _ := io.ReadAll(resp.Body)
 	if string(body) != "check ok" {
@@ -52,7 +52,7 @@ func TestPassiveChecker(t *testing.T) {
 	req = httptest.NewRequest(http.MethodGet, "/?key=wrong", nil)
 	w = httptest.NewRecorder()
 	pc.httpPassiveEndpoint(w, req)
-	
+
 	resp = w.Result()
 	body, _ = io.ReadAll(resp.Body)
 	if string(body) != "auth failed" {
@@ -92,8 +92,8 @@ func TestPassiveCheckerTimeout(t *testing.T) {
 	})
 
 	cfg := &config.Config{
-		ListenAddress:  "127.0.0.1:0", 
-		HostMaxSeconds: 1,                 // Will timeout immediately
+		ListenAddress:  "127.0.0.1:0",
+		HostMaxSeconds: 1, // Will timeout immediately
 		AuthenticatedHosts: map[string]string{
 			"host1": "key1",
 		},

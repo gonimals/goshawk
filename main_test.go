@@ -4,61 +4,61 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"os"
 	"testing"
 	"time"
-
-	"github.com/gonimals/goshawk/pkg/checker"
-	"github.com/gonimals/goshawk/pkg/config"
-	"github.com/gonimals/goshawk/pkg/notifier"
 )
 
 func TestOffline(t *testing.T) {
-	completeTest(t, "test_files/offline_test.json", "f3ebcffc6a0fed8b386fa79ab3a5b27114f999a0fe4d7abccde842c8b6a60b69", true)
+	testMainSkel(t, "test_files/offline_test.yaml", "468c", true)
 }
 
 func TestOnline(t *testing.T) {
-	completeTest(t, "test_files/online_test.json", "dca94de2b91a98be29", false)
+	testMainSkel(t, "test_files/online_test.yaml", "5189f8b68749a3e6a26e6ea2ed0a91947e56b76f8e1f73b2d600eaf3cc732eb7", false)
 }
 
-func completeTest(t *testing.T, configFile, expectedHash string, includeAuthHost bool) {
-	slog.SetLogLoggerLevel(slog.LevelDebug)
-	config, err := config.LoadConfig(configFile, expectedHash)
-	if err != nil {
-		t.Fatalf("Error loading configuration: %v", err)
+func TestTelegramNotification(t *testing.T) {
+	t.SkipNow() //comment this line to run this test
+	testMainSkel(t, "test_files/telegram_test.yaml", "", true)
+}
+
+func testMainSkel(t *testing.T, configFile, expectedHash string, includeAuthHost bool) {
+	// Injecting parameters directly as a string slice
+	args := []string{
+		"-config", configFile,
+		"-hash", expectedHash, "-v",
 	}
 
-	sender := notifier.NewTestNotifier()
-	activeChecker := checker.NewActiveChecker(config, sender)
-	passiveChecker := checker.NewPassiveChecker(config, sender)
+	go companionRoutine(t, includeAuthHost)
+
+	exitCode := run(args)
+
+	if exitCode != 0 {
+		t.Errorf("expected exit code 0, got %d", exitCode)
+	}
+}
+
+func companionRoutine(t *testing.T, includeAuthHost bool) {
+	defer func() {
+		slog.Info("requesting to exit from companion routine")
+		SignalChan <- os.Interrupt
+	}()
 
 	if includeAuthHost {
 		time.Sleep(1 * time.Second)
 		resp, err := http.Get("http://127.0.0.1:12345/?key=12345678")
 		if err != nil {
-			t.Fatalf("error sending request: %v", err)
+			t.Errorf("error sending request: %v", err)
+			return
 		}
 		bodyBytes, err := io.ReadAll(resp.Body)
 		if err != nil {
-			t.Fatalf("error reading response body: %v", err)
+			t.Errorf("error reading response body: %v", err)
 		}
 		if "auth check ok" != string(bodyBytes) {
-			t.Fatalf("unexpected response body for auth request: %s", string(bodyBytes))
+			t.Errorf("unexpected response body for auth request: %s", string(bodyBytes))
 		}
 	}
 
 	time.Sleep(5 * time.Second)
-	slog.Debug("shutting down debug checkers")
-	err = activeChecker.Stop()
-	if err != nil {
-		t.Fatalf("error stopping active checker: %v", err)
-	} else {
-		slog.Debug("active checker stopped")
-	}
-	err = passiveChecker.Stop()
-	if err != nil {
-		t.Fatalf("error stopping passive checker: %v", err)
-	} else {
-		slog.Debug("passive checker stopped")
-	}
-	slog.Info("exiting")
 }

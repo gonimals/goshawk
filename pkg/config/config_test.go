@@ -3,12 +3,12 @@ package config_test
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/gonimals/goshawk/pkg/config"
+	yaml "gopkg.in/yaml.v3"
 )
 
 func TestLoadConfig(t *testing.T) {
@@ -26,7 +26,7 @@ func TestLoadConfig(t *testing.T) {
 		},
 	}
 
-	data, err := json.Marshal(cfgData)
+	data, err := yaml.Marshal(cfgData)
 	if err != nil {
 		t.Fatalf("Failed to marshal config: %v", err)
 	}
@@ -60,8 +60,8 @@ func TestLoadConfig(t *testing.T) {
 
 func TestLoadConfigMismatchHash(t *testing.T) {
 	tmpDir := t.TempDir()
-	configFile := filepath.Join(tmpDir, "config.json")
-	if err := os.WriteFile(configFile, []byte("{}"), 0644); err != nil {
+	configFile := filepath.Join(tmpDir, "config.yaml")
+	if err := os.WriteFile(configFile, []byte("services:\n  dummy:\n    type: tcp"), 0644); err != nil {
 		t.Fatalf("Failed to write config file: %v", err)
 	}
 
@@ -73,8 +73,8 @@ func TestLoadConfigMismatchHash(t *testing.T) {
 
 func TestLoadConfigNoHash(t *testing.T) {
 	tmpDir := t.TempDir()
-	configFile := filepath.Join(tmpDir, "config.json")
-	if err := os.WriteFile(configFile, []byte("{}"), 0644); err != nil {
+	configFile := filepath.Join(tmpDir, "config.yaml")
+	if err := os.WriteFile(configFile, []byte("services:\n  dummy:\n    type: tcp"), 0644); err != nil {
 		t.Fatalf("Failed to write config file: %v", err)
 	}
 

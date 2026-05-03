@@ -1,0 +1,25 @@
+listen_address: "127.0.0.1:12345"
+notification_url: ""
+authenticated_hosts:
+  authorized_host: "12345678"
+  unexistent: "09876543"
+host_max_seconds: 2
+template_title: "{{.Name}} is {{ if .IsActive }}active{{ else }}inactive{{ end }}"
+services:
+  ssh_port:
+    type: tcp
+    tcp:
+      address: "127.0.0.1:22"
+    frequency_seconds: 1
+    max_fails: 2
+  web_12345:
+    type: web_request
+    web_request:
+      url: "http://127.0.0.1:12345/"
+      method: GET
+      expected_status: 200
+  bash_echo:
+    type: bash_script
+    bash_script:
+      code: "echo 'hello world'"
+      expected_output_regexp: "hello [a-z]{4}"

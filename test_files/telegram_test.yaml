@@ -1,0 +1,9 @@
+# Create the new bot with the @botfather in Telegram
+notification_url: "https://api.telegram.org/bot8228951974:AAHRVMEF644x0EjACErU9Kd9Nr7bSzQV7cU/sendMessage"
+notification_rate_limit: 1
+# After creating the bot, talk to it and get the chat id with curl "https://api.telegram.org/bot8228951974:AAHRVMEF644x0EjACErU9Kd9Nr7bSzQV7cU/getUpdates"
+template_body: "{ \"chat_id\": 120963222, \"text\": \"{{ .ServiceName }} is {{ if .IsActive }}active{{ else }}inactive{{ end }}\" }"
+
+listen_address: "127.0.0.1:12345"
+authenticated_hosts:
+  "Host example": "12345678"

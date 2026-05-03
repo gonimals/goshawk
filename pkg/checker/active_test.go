@@ -38,12 +38,12 @@ func TestActiveChecker(t *testing.T) {
 	}
 
 	notif := notifier.NewTestNotifier()
-	
+
 	ac := checker.NewActiveChecker(cfg, notif)
-	
+
 	// Wait a bit for the checker to run at least one tick and check services
 	time.Sleep(1500 * time.Millisecond)
-	
+
 	err := ac.Stop()
 	if err != nil {
 		t.Fatalf("unexpected error on stop: %v", err)
@@ -58,7 +58,7 @@ func TestActiveChecker(t *testing.T) {
 	if statusFail.IsActive {
 		t.Errorf("expected failing_service to be inactive")
 	}
-	
+
 	testNotif, _ := notif.(*notifier.TestNotifier)
 	if len(testNotif.NotificationLog) == 0 {
 		t.Errorf("expected notifications to be sent")

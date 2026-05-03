@@ -11,18 +11,31 @@ Create a golang project to monitor servers. The program should be called through
 - Every time the command detects a service is not working, it should invoke an HTTP request to an endpoint defined in the JSON configuration
 - The project module should be github.com/gonimals/goshawk
 
+## Configuration
+
+The parameters to use in templates are the ones in ServiceStatus.
+
+If notifications are not working as expected, it can be a problem of templates. Errors in templates are silent.
+
 ## Development
 
 ### Github workflow
 
-To run the github workflow locally, you can just run this command:
+To run the github workflows locally:
+
 ```
-act
+act push -W .github/workflows/go.yml
 act push -W .github/workflows/release.yml --container-architecture linux/amd64 \
-  --env GORELEASER_CURRENT_TAG=v0.0.1-local --artifact-server-path  ${PWD}/dist #/tmp/artifacts
+  --env GORELEASER_CURRENT_TAG=v0.0.1-local
 ```
 
-To deploy `act` in an Arch Linux system, just run:
+To check what is the `goreleaser` tool generating locally:
+
+```
+goreleaser release --snapshot --skip=publish --clean
+```
+
+To deploy `act` and `goreleaser` in an Arch Linux system:
 
 ```
 run0 pacman -S act goreleaser podman

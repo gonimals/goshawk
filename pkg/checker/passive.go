@@ -89,7 +89,7 @@ func (pc *PassiveChecker) httpPassiveEndpoint(w http.ResponseWriter, r *http.Req
 
 	fmt.Fprint(w, "auth check ok")
 	slog.Debug("http auth success", "host", authHost)
-	go pc.updateHostEntry(authHost, r.RemoteAddr)
+	pc.updateHostEntry(authHost, r.RemoteAddr)
 }
 
 func (pc *PassiveChecker) updateHostEntry(host, remoteAddress string) {

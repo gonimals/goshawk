@@ -1,47 +1,46 @@
 package notifier
 
 import (
-	"bytes"
-	"encoding/json"
+	"context"
 	"fmt"
+	"io"
+	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/gonimals/goshawk/pkg/config"
+	"golang.org/x/time/rate"
 )
 
 type PostNotifier struct {
 	notificationUrl string
-	templateNotifier
-}
-
-func NewPostNotifier(cfg *config.Config) Notifier {
-	return &PostNotifier{
-		notificationUrl: cfg.NotificationURL,
-		templateNotifier: templateNotifier{
-			cfg: cfg,
-		},
-	}
+	templateHandler
+	limiter *rate.Limiter
 }
 
 func (pn *PostNotifier) Notify(data config.AssetStatus) error {
-	title, body := pn.parseMessages(data)
-	payload := map[string]string{
-		"title": title,
-		"body":  body,
+	if pn.limiter != nil {
+		if err := pn.limiter.Wait(context.Background()); err != nil {
+			slog.Warn("rate limiter error", "error", err)
+			return fmt.Errorf("rate limiter error: %v", err)
+		}
 	}
 
-	jsonPayload, err := json.Marshal(payload)
-	if err != nil {
-		return fmt.Errorf("could not marshal notification payload: %v", err)
-	}
+	_, body := pn.parseMessages(data)
 
-	resp, err := http.Post(pn.notificationUrl, "application/json", bytes.NewBuffer(jsonPayload))
+	resp, err := http.Post(pn.cfg.NotificationURL, "application/json", strings.NewReader(body))
 	if err != nil {
+		slog.Warn("could not send notification", "error", err)
 		return fmt.Errorf("could not send notification: %v", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			respBody = []byte(fmt.Sprintf("could not read response body: %v", err))
+		}
+		slog.Warn("notification endpoint returned non-200 status", "status", resp.StatusCode, "body", string(respBody))
 		return fmt.Errorf("notification endpoint returned non-200 status: %v", resp.StatusCode)
 	}
 	return nil

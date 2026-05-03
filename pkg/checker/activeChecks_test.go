@@ -60,6 +60,13 @@ func TestCheckBashScript(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error checking bash script: %v", err)
 	}
+	err = checker.CheckBashScript(&config.BashScriptAction{
+		Code:                 "echo 'hello world'",
+		ExpectedOutputRegexp: "^hello [a-z]{4}",
+	})
+	if err != nil {
+		t.Fatalf("error checking bash script: %v", err)
+	}
 
 	err = checker.CheckBashScript(&config.BashScriptAction{
 		Code:                 "echo 'hello world'",

@@ -11,11 +11,21 @@ import (
 	"github.com/gonimals/goshawk/pkg/notifier"
 )
 
+var SignalChan = make(chan os.Signal, 1)
+
 func main() {
-	configFile := flag.String("config", "config.json", "Configuration file")
-	configHash := flag.String("hash", "", "Expected SHA256 hash of the configuration file")
-	verboseMode := flag.Bool("v", false, "Enable verbose logging")
-	flag.Parse()
+	os.Exit(run(os.Args[1:]))
+}
+
+func run(args []string) int {
+	fs := flag.NewFlagSet("goshawk", flag.ContinueOnError)
+	configFile := fs.String("config", "config.json", "Configuration file")
+	configHash := fs.String("hash", "", "Expected SHA256 hash of the configuration file")
+	verboseMode := fs.Bool("v", false, "Enable verbose logging")
+
+	if err := fs.Parse(args); err != nil {
+		return 1
+	}
 
 	if *verboseMode {
 		slog.SetLogLoggerLevel(slog.LevelDebug)
@@ -24,26 +34,21 @@ func main() {
 	config, err := config.LoadConfig(*configFile, *configHash)
 	if err != nil {
 		slog.Error("Error loading configuration", "error", err)
-		os.Exit(1)
+		return 1
 	}
 
 	var sender notifier.Notifier
-	if config.NotificationURL == "" {
-		sender = notifier.NewLogNotifier(config)
-	} else {
-		sender = notifier.NewPostNotifier(config)
-	}
+	sender = notifier.NewNotifier(config)
 
 	activeChecker := checker.NewActiveChecker(config, sender)
 	passiveChecker := checker.NewPassiveChecker(config, sender)
 
-	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, os.Interrupt)
+	signal.Notify(SignalChan, os.Interrupt)
 
-	sig := <-signalChan
+	sig := <-SignalChan
 	if sig != os.Interrupt {
 		slog.Warn("unexpected signal in handler", "signal", sig)
-		os.Exit(1)
+		return 1
 	}
 	slog.Info("received interrupt", "signal", sig)
 	err = activeChecker.Stop()
@@ -59,5 +64,5 @@ func main() {
 		slog.Info("passive checker stopped")
 	}
 	slog.Info("exiting")
-	os.Exit(0)
+	return 0
 }

@@ -3,12 +3,13 @@ package config
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"html/template"
 	"io"
 	"log/slog"
 	"os"
+
+	yaml "gopkg.in/yaml.v3"
 
 	"github.com/gonimals/goshawk/pkg/util"
 )
@@ -41,9 +42,18 @@ func LoadConfig(configFile, expectedHash string) (*Config, error) {
 func ParseConfigBytes(data []byte) (*Config, error) {
 	var config Config
 	var err error
-	if err = json.Unmarshal(data, &config); err != nil {
+	if err = yaml.Unmarshal(data, &config); err != nil {
 		return nil, fmt.Errorf("could not parse config file: %w", err)
 	}
+
+	if len(config.Services) == 0 && len(config.AuthenticatedHosts) == 0 {
+		return nil, fmt.Errorf("configuration error: no services defined")
+	}
+
+	if config.ListenAddress == "" && len(config.AuthenticatedHosts) > 0 {
+		return nil, fmt.Errorf("configuration error: authenticated hosts require a valid listen address")
+	}
+
 	config.TemplateTitleParsed, err = template.New("title").Parse(config.TemplateTitle)
 	if err != nil {
 		return nil, fmt.Errorf("could not parse template title: %w", err)
@@ -60,12 +70,16 @@ func ParseConfigBytes(data []byte) (*Config, error) {
 
 	config.HostsStatus = util.NewSyncMap[string, AssetStatus]()
 	for host := range config.AuthenticatedHosts {
-		config.HostsStatus.Set(host, AssetStatus{})
+		config.HostsStatus.Set(host, AssetStatus{
+			ServiceName: host,
+		})
 	}
 
 	config.ServicesStatus = util.NewSyncMap[string, AssetStatus]()
 	for serviceName := range config.Services {
-		config.ServicesStatus.Set(serviceName, AssetStatus{})
+		config.ServicesStatus.Set(serviceName, AssetStatus{
+			ServiceName: serviceName,
+		})
 	}
 
 	return &config, nil

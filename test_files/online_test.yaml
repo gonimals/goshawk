@@ -1,0 +1,24 @@
+notification_url: "http://localhost:8081/notify"
+listen_address: "127.0.0.1:12345"
+services:
+  google:
+    type: ping
+    ping:
+      host: "google.com"
+  google_web:
+    type: web_request
+    web_request:
+      url: "https://google.com"
+      method: GET
+      expected_status: 200
+  local_web:
+    type: web_request
+    web_request:
+      url: "http://localhost:8081/health"
+      method: GET
+      expected_status: 200
+  bash_echo:
+    type: bash_script
+    bash_script:
+      code: "echo 'hello world'"
+      expected_output_regexp: "hello"

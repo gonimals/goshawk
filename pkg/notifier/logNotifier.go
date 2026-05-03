@@ -7,15 +7,7 @@ import (
 )
 
 type LogNotifier struct {
-	templateNotifier
-}
-
-func NewLogNotifier(cfg *config.Config) Notifier {
-	return &LogNotifier{
-		templateNotifier: templateNotifier{
-			cfg: cfg,
-		},
-	}
+	templateHandler
 }
 
 func (ln *LogNotifier) Notify(data config.AssetStatus) error {
