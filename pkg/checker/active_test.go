@@ -60,7 +60,7 @@ func TestActiveChecker(t *testing.T) {
 	}
 
 	testNotif, _ := notif.(*notifier.TestNotifier)
-	if len(testNotif.NotificationLog) == 0 {
+	if len(testNotif.GetLogs()) == 0 {
 		t.Errorf("expected notifications to be sent")
 	}
 }

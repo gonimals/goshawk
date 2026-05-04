@@ -1,43 +1,72 @@
 # Goshawk
 
-Initial prompt:
+<img src="./docs/logo.svg" alt="Goshawk logo" width="200" height="200">
 
-Create a golang project to monitor servers. The program should be called through command line with the following features:
-- Expose a web endpoint to be monitored and which returns "check ok" on every GET request
-  - This endpoint should be able to consume a passphrase sent through a GET parameter to confirm who is online on the other side
-- The program should parse a configuration JSON-based to define which local or remote services should check. Every service should have one action assigned between ping, web request (with URL, method and expected status) or bash script (with code and expected output through regexp)
-  - The configuration file should be validated against a SHA256 provided through command line parameter
-  - In case the configuration cannot be validated with the hash, the program should print the calculated hash and work without commands support
-- Every time the command detects a service is not working, it should invoke an HTTP request to an endpoint defined in the JSON configuration
-- The project module should be github.com/gonimals/goshawk
+Goshawk is a fast and lightweight server monitoring tool written in Go. It supports both active and passive monitoring, offering flexible alerting capabilities. Main features include:
+
+- **Passive Monitoring (Heartbeats):** Exposes an HTTP endpoint that returns "check ok" on every GET request.
+  - Clients can send a passphrase via a `key` query parameter (`?key=your_secret`) to authenticate and register as active.
+  - If an authenticated host stops checking in within a configured timeframe, Goshawk flags it as offline and triggers a notification.
+- **Active Monitoring:** Parses a YAML configuration file to define scheduled checks against local or remote services. Supported check types:
+  - `tcp`: Attempts a TCP connection to an address/port with a configurable timeout.
+  - `web_request`: Sends HTTP requests with customizable method, body, and timeout, validating against an expected status code.
+  - `bash_script`: Executes an arbitrary bash script and validates the output using a regular expression.
+- **Robust Alerting:** Triggers customizable HTTP POST notifications (e.g., Webhooks, Slack, Telegram) when a service or host state changes.
+  - Features configurable retry logic (`max_fails` before alerting) and notification rate-limiting.
+  - Notification payloads can be customized using Go templates for titles and bodies.
+- **Security:** The configuration file can be securely validated against a SHA256 checksum provided via a command-line argument.
+
+## Installation
+
+The intended way to deploy Goshawk is to run the installer:
+
+```bash
+curl -L https://github.com/gonimals/goshawk/raw/refs/heads/main/deploy/install.sh | sudo bash
+```
+
+The script downloads the executable file for your architecture and places it in `/usr/local/sbin/goshawk`. It also creates the configuration file at `/etc/goshawk.yml` and installs the systemd service at `/etc/systemd/system/goshawk.service`.
+
+You can also deploy by yourself by by compiling the executable file or downloading from the github releases section. Then, check the installation script to figure out how to run it or just do it manually.
 
 ## Configuration
 
-The parameters to use in templates are the ones in ServiceStatus.
+Check the example configuration file to discover how to configure Goshawk. The default configuration file is placed at `/etc/goshawk.yml`, owned by `root` and with permissions `0600` to prevent users from modifying it or reading API keys.
 
-If notifications are not working as expected, it can be a problem of templates. Errors in templates are silent.
+If notifications are not working as expected, it can be a problem with the templates. Errors in templates can be silent, so verify them carefully.
 
 ## Development
+
+### Golang
+
+Ensure you have installed `go` in your system.
+
+To keep the project maintained, when developing use these commands:
+
+```bash
+go mod tidy
+go get -u ./...
+go test -cover ./...
+go test -race ./...
+```
 
 ### Github workflow
 
 To run the github workflows locally:
 
-```
-act push -W .github/workflows/go.yml
-act push -W .github/workflows/release.yml --container-architecture linux/amd64 \
+```bash
+act push -W .github/workflows/ci.yml --container-architecture linux/amd64 \
   --env GORELEASER_CURRENT_TAG=v0.0.1-local
 ```
 
-To check what is the `goreleaser` tool generating locally:
+To check what the `goreleaser` tool is generating locally:
 
-```
+```bash
 goreleaser release --snapshot --skip=publish --clean
 ```
 
 To deploy `act` and `goreleaser` in an Arch Linux system:
 
-```
+```bash
 run0 pacman -S act goreleaser podman
 systemctl --user enable --now podman.socket
 act # The medium size image is enough

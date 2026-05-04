@@ -10,16 +10,16 @@ import (
 )
 
 func TestOffline(t *testing.T) {
-	testMainSkel(t, "test_files/offline_test.yaml", "468c", true)
+	testMainSkel(t, "test_configs/offline_test.yaml", "0afa", true)
 }
 
 func TestOnline(t *testing.T) {
-	testMainSkel(t, "test_files/online_test.yaml", "5189f8b68749a3e6a26e6ea2ed0a91947e56b76f8e1f73b2d600eaf3cc732eb7", false)
+	testMainSkel(t, "test_configs/online_test.yaml", "5189f8b68749a3e6a26e6ea2ed0a91947e56b76f8e1f73b2d600eaf3cc732eb7", false)
 }
 
 func TestTelegramNotification(t *testing.T) {
 	t.SkipNow() //comment this line to run this test
-	testMainSkel(t, "test_files/telegram_test.yaml", "", true)
+	testMainSkel(t, "test_configs/telegram_test.yaml", "", true)
 }
 
 func testMainSkel(t *testing.T, configFile, expectedHash string, includeAuthHost bool) {

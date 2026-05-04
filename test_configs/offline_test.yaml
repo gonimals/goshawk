@@ -4,7 +4,7 @@ authenticated_hosts:
   authorized_host: "12345678"
   unexistent: "09876543"
 host_max_seconds: 2
-template_title: "{{.Name}} is {{ if .IsActive }}active{{ else }}inactive{{ end }}"
+template_title: "{{ .ServiceName }} is {{ if .IsActive }}active{{ else }}inactive{{ end }}"
 services:
   ssh_port:
     type: tcp

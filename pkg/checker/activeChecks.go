@@ -19,10 +19,11 @@ func CheckTCP(action *config.TCPAction) error {
 			slog.Error("panic running check", "recovered", recovered)
 		}
 	}()
-	if action.TimeoutSeconds == 0 {
-		action.TimeoutSeconds = 2
+	timeoutSeconds := action.TimeoutSeconds
+	if timeoutSeconds == 0 {
+		timeoutSeconds = 2
 	}
-	conn, err := net.DialTimeout("tcp", action.Address, time.Second*time.Duration(action.TimeoutSeconds))
+	conn, err := net.DialTimeout("tcp", action.Address, time.Second*time.Duration(timeoutSeconds))
 	if err == nil {
 		conn.Close()
 	}
@@ -35,10 +36,11 @@ func CheckWebRequest(action *config.WebRequestAction) error {
 		return err
 	}
 
-	if action.TimeoutSeconds == 0 {
-		action.TimeoutSeconds = 10
+	timeoutSeconds := action.TimeoutSeconds
+	if timeoutSeconds == 0 {
+		timeoutSeconds = 10
 	}
-	client := &http.Client{Timeout: time.Second * time.Duration(action.TimeoutSeconds)}
+	client := &http.Client{Timeout: time.Second * time.Duration(timeoutSeconds)}
 	resp, err := client.Do(req)
 	if err != nil {
 		return err

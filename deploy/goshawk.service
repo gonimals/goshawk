@@ -1,0 +1,16 @@
+# /usr/lib/systemd/system/goshawk.service
+
+[Unit]
+Description=goshawk monitoring tool
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/sbin/goshawk -config /etc/goshawk.yml
+Restart=always
+RestartSec=5s
+User=root
+Group=root
+
+[Install]
+WantedBy=multi-user.target
