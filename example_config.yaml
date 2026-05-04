@@ -49,4 +49,4 @@ services:
     max_fails: 1
     bash_script:
       code: "df -h / | awk 'NR==2 {print $5}'"
-      expected_output_regexp: "^([0-8][0-9]%|90%)$" # Warn if over 90%
+      expected_output_regexp: "^([0-8][0-9]%|90%)" # Warn if over 90%

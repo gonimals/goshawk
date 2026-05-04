@@ -55,6 +55,14 @@ func (ac *ActiveChecker) checkService(serviceName string) {
 		slog.Debug("service already being checked", "name", serviceName)
 		return
 	}
+
+	oldStatus := ac.config.ServicesStatus.Get(serviceName)
+
+	if service.FrequencySeconds > 0 &&
+		time.Since(oldStatus.LastCheck) < time.Duration(service.FrequencySeconds)*time.Second {
+		return
+	}
+
 	switch service.Type {
 	case "tcp":
 		err = CheckTCP(service.TCP)
@@ -66,8 +74,8 @@ func (ac *ActiveChecker) checkService(serviceName string) {
 		err = fmt.Errorf("unknown action type: %s", service.Type)
 	}
 
-	oldStatus := ac.config.ServicesStatus.Get(serviceName)
 	status := oldStatus
+	status.LastCheck = time.Now()
 
 	isActive := err == nil
 	if status.IsActive != isActive {
@@ -82,6 +90,9 @@ func (ac *ActiveChecker) checkService(serviceName string) {
 		}
 	}
 	if status.Notified {
+		if !ac.config.ServicesStatus.CompareAndSwap(serviceName, oldStatus, status) {
+			slog.Warn("error saving last check date", "service", serviceName)
+		}
 		return
 	}
 

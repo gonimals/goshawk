@@ -40,7 +40,12 @@ func CheckWebRequest(action *config.WebRequestAction) error {
 	if timeoutSeconds == 0 {
 		timeoutSeconds = 10
 	}
-	client := &http.Client{Timeout: time.Second * time.Duration(timeoutSeconds)}
+	client := &http.Client{
+		Timeout: time.Second * time.Duration(timeoutSeconds),
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		return err
