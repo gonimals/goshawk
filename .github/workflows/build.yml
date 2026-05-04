@@ -1,4 +1,4 @@
-name: CI/CD
+name: Build and Test
 
 on:
   push:
@@ -38,13 +38,3 @@ jobs:
 
       - name: Test
         run: go test -v -cover ./...
-
-      - name: Run GoReleaser
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: goreleaser/goreleaser-action@v5
-        with:
-          distribution: goreleaser
-          version: latest
-          args: ${{ env.GITHUB_TOKEN == '' && 'release --snapshot --skip=publish --clean' || 'release --clean' }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
