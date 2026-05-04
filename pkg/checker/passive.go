@@ -37,8 +37,12 @@ func (pc *PassiveChecker) run() error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", pc.httpPassiveEndpoint)
 	srv := &http.Server{
-		Addr:    pc.config.ListenAddress,
-		Handler: mux,
+		Addr:              pc.config.ListenAddress,
+		Handler:           mux,
+		ReadHeaderTimeout: 1 * time.Second,
+		ReadTimeout:       1 * time.Second,
+		WriteTimeout:      2 * time.Second,
+		IdleTimeout:       2 * time.Second,
 	}
 	pc.exitWG.Add(1)
 	var err error

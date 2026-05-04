@@ -19,7 +19,7 @@ func TestLoadConfig(t *testing.T) {
 			"host1": "key1",
 		},
 		HostMaxSeconds: 60,
-		Services: map[string]config.Service{
+		Services: map[string]*config.Service{
 			"service1": {
 				Type: "tcp",
 			},

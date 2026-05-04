@@ -1,6 +1,9 @@
 package notifier
 
 import (
+	"net/http"
+	"time"
+
 	"github.com/gonimals/goshawk/pkg/config"
 	"golang.org/x/time/rate"
 )
@@ -30,5 +33,8 @@ func NewNotifier(cfg *config.Config) Notifier {
 	return &PostNotifier{
 		templateHandler: handler,
 		limiter:         limiter,
+		httpClient: &http.Client{
+			Timeout: 10 * time.Second,
+		},
 	}
 }

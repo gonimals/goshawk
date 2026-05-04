@@ -49,6 +49,12 @@ func (ac *ActiveChecker) run() {
 func (ac *ActiveChecker) checkService(serviceName string) {
 	var err error
 	service := ac.config.Services[serviceName]
+	if service.Mutex.TryLock() {
+		defer service.Mutex.Unlock()
+	} else {
+		slog.Debug("service already being checked", "name", serviceName)
+		return
+	}
 	switch service.Type {
 	case "tcp":
 		err = CheckTCP(service.TCP)

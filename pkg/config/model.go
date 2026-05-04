@@ -2,6 +2,7 @@ package config
 
 import (
 	"html/template"
+	"sync"
 	"time"
 
 	"github.com/gonimals/goshawk/pkg/util"
@@ -27,7 +28,7 @@ type Config struct {
 	HostMaxSeconds int `yaml:"host_max_seconds"`
 
 	// Services defines the active checks this checker will be launching
-	Services map[string]Service `yaml:"services"`
+	Services map[string]*Service `yaml:"services"`
 
 	// TemplateTitle accepts attributes from AssetStatus
 	TemplateTitle       string             `yaml:"template_title"`
@@ -54,6 +55,7 @@ type AssetStatus struct {
 }
 
 type Service struct {
+	Mutex            sync.Mutex        `yaml:"-"`
 	Type             string            `yaml:"type"`
 	TCP              *TCPAction        `yaml:"tcp,omitempty"`
 	WebRequest       *WebRequestAction `yaml:"web_request,omitempty"`

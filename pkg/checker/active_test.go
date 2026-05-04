@@ -16,7 +16,7 @@ func TestActiveChecker(t *testing.T) {
 	servicesStatus.Set("failing_service", config.AssetStatus{})
 
 	cfg := &config.Config{
-		Services: map[string]config.Service{
+		Services: map[string]*config.Service{
 			"test_service": {
 				Type: "bash_script",
 				BashScript: &config.BashScriptAction{

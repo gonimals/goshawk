@@ -13,9 +13,9 @@ import (
 )
 
 type PostNotifier struct {
-	notificationUrl string
 	templateHandler
-	limiter *rate.Limiter
+	limiter    *rate.Limiter
+	httpClient *http.Client
 }
 
 func (pn *PostNotifier) Notify(data config.AssetStatus) error {
@@ -28,7 +28,7 @@ func (pn *PostNotifier) Notify(data config.AssetStatus) error {
 
 	_, body := pn.parseMessages(data)
 
-	resp, err := http.Post(pn.cfg.NotificationURL, "application/json", strings.NewReader(body))
+	resp, err := pn.httpClient.Post(pn.cfg.NotificationURL, "application/json", strings.NewReader(body))
 	if err != nil {
 		slog.Warn("could not send notification", "error", err)
 		return fmt.Errorf("could not send notification: %v", err)
