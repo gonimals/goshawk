@@ -2,7 +2,12 @@ package checker
 
 import (
 	"fmt"
+	"io"
 	"log/slog"
+	"net"
+	"net/http"
+	"os/exec"
+	"strings"
 	"sync"
 	"time"
 
@@ -65,11 +70,11 @@ func (ac *ActiveChecker) checkService(serviceName string) {
 
 	switch service.Type {
 	case "tcp":
-		err = CheckTCP(service.TCP)
+		err = ac.CheckTCP(service.TCP)
 	case "web_request":
-		err = CheckWebRequest(service.WebRequest)
+		err = ac.CheckWebRequest(service.WebRequest)
 	case "bash_script":
-		err = CheckBashScript(service.BashScript)
+		err = ac.CheckBashScript(service.BashScript)
 	default:
 		err = fmt.Errorf("unknown action type: %s", service.Type)
 	}
@@ -81,7 +86,8 @@ func (ac *ActiveChecker) checkService(serviceName string) {
 	if status.IsActive != isActive {
 		status.IsActive = isActive
 		status.ConsecutiveFails = 0
-		status.Notified = false
+		// Avoid notification if back to online before max consecutive fails
+		status.Notified = !oldStatus.Notified && status.IsActive
 		status.LastChange = time.Now()
 		if err != nil {
 			status.DownReason = err.Error()
@@ -120,4 +126,76 @@ func (ac *ActiveChecker) checkService(serviceName string) {
 		return
 	}
 	go ac.notifier.Notify(status)
+}
+
+func (ac *ActiveChecker) CheckTCP(action *config.TCPAction) error {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			slog.Error("panic running check", "recovered", recovered)
+		}
+	}()
+	timeoutSeconds := action.TimeoutSeconds
+	if timeoutSeconds == 0 {
+		timeoutSeconds = ac.config.DefaultServiceTimeout
+	}
+	conn, err := net.DialTimeout("tcp", action.Address, time.Second*time.Duration(timeoutSeconds))
+	if err == nil {
+		conn.Close()
+	}
+	return err
+}
+
+func (ac *ActiveChecker) CheckWebRequest(action *config.WebRequestAction) error {
+	req, err := http.NewRequest(action.Method, action.URL, strings.NewReader(action.Body))
+	if err != nil {
+		return err
+	}
+
+	timeoutSeconds := action.TimeoutSeconds
+	if timeoutSeconds == 0 {
+		timeoutSeconds = ac.config.DefaultServiceTimeout
+	}
+	client := &http.Client{
+		Timeout: time.Second * time.Duration(timeoutSeconds),
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != action.ExpectedStatus {
+		return fmt.Errorf("unexpected status code: got %d, want %d", resp.StatusCode, action.ExpectedStatus)
+	}
+
+	if action.ExpectedOutput == "" {
+		return nil
+	}
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	if !action.ExpectedOutputRegexp.Match(bodyBytes) {
+		return fmt.Errorf("output does not match regexp: %s", bodyBytes)
+	}
+
+	return nil
+}
+
+func (ac *ActiveChecker) CheckBashScript(action *config.BashScriptAction) error {
+	cmd := exec.Command("bash", "-c", action.Code)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("script execution failed: %w - %s", err, output)
+	}
+
+	if !action.ExpectedOutputRegexp.Match(output) {
+		return fmt.Errorf("output does not match regexp: %s", output)
+	}
+
+	return nil
 }

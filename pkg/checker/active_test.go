@@ -1,10 +1,13 @@
-package checker_test
+package checker
 
 import (
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"regexp"
 	"testing"
 	"time"
 
-	"github.com/gonimals/goshawk/pkg/checker"
 	"github.com/gonimals/goshawk/pkg/config"
 	"github.com/gonimals/goshawk/pkg/notifier"
 	"github.com/gonimals/goshawk/pkg/util"
@@ -21,7 +24,7 @@ func TestActiveChecker(t *testing.T) {
 				Type: "bash_script",
 				BashScript: &config.BashScriptAction{
 					Code:                 "echo 'ok'",
-					ExpectedOutputRegexp: "ok",
+					ExpectedOutputRegexp: regexp.MustCompile("ok"),
 				},
 				MaxFails: 2,
 			},
@@ -29,7 +32,7 @@ func TestActiveChecker(t *testing.T) {
 				Type: "bash_script",
 				BashScript: &config.BashScriptAction{
 					Code:                 "exit 1",
-					ExpectedOutputRegexp: ".*",
+					ExpectedOutputRegexp: regexp.MustCompile(".*"),
 				},
 				MaxFails: 1,
 			},
@@ -39,7 +42,7 @@ func TestActiveChecker(t *testing.T) {
 
 	notif := notifier.NewTestNotifier()
 
-	ac := checker.NewActiveChecker(cfg, notif)
+	ac := NewActiveChecker(cfg, notif)
 
 	// Wait a bit for the checker to run at least one tick and check services
 	time.Sleep(1500 * time.Millisecond)
@@ -62,5 +65,84 @@ func TestActiveChecker(t *testing.T) {
 	testNotif, _ := notif.(*notifier.TestNotifier)
 	if len(testNotif.GetLogs()) == 0 {
 		t.Errorf("expected notifications to be sent")
+	}
+
+	testCheckTCP(t, ac)
+	testCheckWebRequest(t, ac)
+	testCheckBashScript(t, ac)
+}
+
+func launchTestingWebServer() (server *httptest.Server, address string) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("ok"))
+	})
+	server = httptest.NewServer(mux)
+	return server, server.Listener.Addr().String()
+}
+
+func testCheckTCP(t *testing.T, ac *ActiveChecker) {
+	server, address := launchTestingWebServer()
+	if server == nil {
+		t.Fatal("failed to start server")
+	}
+	defer server.Close()
+
+	err := ac.CheckTCP(&config.TCPAction{
+		Address: address,
+	})
+	if err != nil {
+		t.Fatalf("error checking TCP: %v", err)
+	}
+}
+
+func testCheckWebRequest(t *testing.T, ac *ActiveChecker) {
+	server, address := launchTestingWebServer()
+	if server == nil {
+		t.Fatal("failed to start server")
+	}
+	defer server.Close()
+
+	err := ac.CheckWebRequest(&config.WebRequestAction{
+		URL:            fmt.Sprintf("http://%s/", address),
+		Method:         "GET",
+		ExpectedStatus: 200,
+	})
+	if err != nil {
+		t.Fatalf("error checking web request: %v", err)
+	}
+
+}
+
+func testCheckBashScript(t *testing.T, ac *ActiveChecker) {
+	err := ac.CheckBashScript(&config.BashScriptAction{
+		Code:                 "echo 'hello world'",
+		ExpectedOutputRegexp: regexp.MustCompile("^hello world\n$"),
+	})
+	if err != nil {
+		t.Fatalf("error checking bash script: %v", err)
+	}
+	err = ac.CheckBashScript(&config.BashScriptAction{
+		Code:                 "echo 'hello world'",
+		ExpectedOutputRegexp: regexp.MustCompile("^hello [a-z]{4}"),
+	})
+	if err != nil {
+		t.Fatalf("error checking bash script: %v", err)
+	}
+
+	err = ac.CheckBashScript(&config.BashScriptAction{
+		Code:                 "echo 'hello world'",
+		ExpectedOutputRegexp: regexp.MustCompile("^goodbye\n$"),
+	})
+	if err == nil {
+		t.Fatalf("expected error checking bash script with wrong output")
+	}
+
+	err = ac.CheckBashScript(&config.BashScriptAction{
+		Code:                 "exit 1",
+		ExpectedOutputRegexp: regexp.MustCompile(".*"),
+	})
+	if err == nil {
+		t.Fatalf("expected error checking bash script that fails")
 	}
 }

@@ -8,6 +8,7 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"regexp"
 
 	yaml "gopkg.in/yaml.v3"
 
@@ -46,6 +47,13 @@ func ParseConfigBytes(data []byte) (*Config, error) {
 		return nil, fmt.Errorf("could not parse config file: %w", err)
 	}
 
+	// Handle incorrect or missing configurations
+	if config.Services == nil {
+		config.Services = make(map[string]*Service)
+	}
+	if config.AuthenticatedHosts == nil {
+		config.AuthenticatedHosts = make(map[string]string)
+	}
 	if len(config.Services) == 0 && len(config.AuthenticatedHosts) == 0 {
 		return nil, fmt.Errorf("configuration error: no services defined")
 	}
@@ -63,6 +71,7 @@ func ParseConfigBytes(data []byte) (*Config, error) {
 		return nil, fmt.Errorf("could not parse template body down: %w", err)
 	}
 
+	// Create auxiliary maps
 	config.HostKeys = make(map[string]string)
 	for host, key := range config.AuthenticatedHosts {
 		config.HostKeys[key] = host
@@ -76,7 +85,58 @@ func ParseConfigBytes(data []byte) (*Config, error) {
 	}
 
 	config.ServicesStatus = util.NewSyncMap[string, AssetStatus]()
-	for serviceName := range config.Services {
+
+	// Handle default values
+	if config.DefaultServiceFrequency == 0 {
+		config.DefaultServiceFrequency = 60
+	}
+	if config.DefaultServiceMaxFails == 0 {
+		config.DefaultServiceMaxFails = 3
+	}
+	if config.DefaultServiceTimeout == 0 {
+		config.DefaultServiceTimeout = 10
+	}
+	if config.NotificationRateLimit == 0 {
+		config.NotificationRateLimit = 10
+	}
+	if config.HostMaxSeconds == 0 {
+		config.HostMaxSeconds = 60
+	}
+
+	// Initialize services
+	for serviceName, service := range config.Services {
+		if service.FrequencySeconds == 0 {
+			service.FrequencySeconds = config.DefaultServiceFrequency
+		}
+		if service.MaxFails == 0 {
+			service.MaxFails = config.DefaultServiceMaxFails
+		}
+		if service.TCP != nil {
+			if service.TCP.TimeoutSeconds == 0 {
+				service.TCP.TimeoutSeconds = config.DefaultServiceTimeout
+			}
+		}
+		if service.WebRequest != nil {
+			if service.WebRequest.TimeoutSeconds == 0 {
+				service.WebRequest.TimeoutSeconds = config.DefaultServiceTimeout
+			}
+			if service.WebRequest.ExpectedOutput == "" {
+				service.WebRequest.ExpectedOutput = ".*"
+			}
+			service.WebRequest.ExpectedOutputRegexp, err = regexp.Compile(service.WebRequest.ExpectedOutput)
+			if err != nil {
+				return nil, fmt.Errorf("could not compile regexp: %w", err)
+			}
+		}
+		if service.BashScript != nil {
+			if service.BashScript.ExpectedOutput == "" {
+				service.BashScript.ExpectedOutput = ".*"
+			}
+			service.BashScript.ExpectedOutputRegexp, err = regexp.Compile(service.BashScript.ExpectedOutput)
+			if err != nil {
+				return nil, fmt.Errorf("could not compile regexp: %w", err)
+			}
+		}
 		config.ServicesStatus.Set(serviceName, AssetStatus{
 			ServiceName: serviceName,
 		})

@@ -2,6 +2,7 @@ package config
 
 import (
 	"html/template"
+	"regexp"
 	"sync"
 	"time"
 
@@ -18,8 +19,8 @@ type Config struct {
 	// ListenAddress defines where the HTTP endpoint for passive checking will be listening
 	ListenAddress string `yaml:"listen_address"`
 
-	// AuthenticatedHosts defines all the hosts which should be sending alive messages (format "host: key")
-	AuthenticatedHosts map[string]string `yaml:"authenticated_hosts"`
+	// AuthenticatedHosts defines all the hosts which should be sending alive messages to this instance (format "host: key")
+	AuthenticatedHosts map[string]string `yaml:"authenticated_hosts,omitempty"`
 
 	// HostKeys is the inverted version of AuthenticatedHosts (format "key: host")
 	HostKeys map[string]string `yaml:"-"`
@@ -28,7 +29,12 @@ type Config struct {
 	HostMaxSeconds int `yaml:"host_max_seconds"`
 
 	// Services defines the active checks this checker will be launching
-	Services map[string]*Service `yaml:"services"`
+	Services map[string]*Service `yaml:"services,omitempty"`
+
+	// Default values for serivces
+	DefaultServiceFrequency int `yaml:"default_service_frequency"`
+	DefaultServiceMaxFails  int `yaml:"default_service_max_fails"`
+	DefaultServiceTimeout   int `yaml:"default_service_timeout"`
 
 	// TemplateTitle accepts attributes from AssetStatus
 	TemplateTitle       string             `yaml:"template_title"`
@@ -70,14 +76,17 @@ type TCPAction struct {
 }
 
 type WebRequestAction struct {
-	URL            string `yaml:"url"`
-	Method         string `yaml:"method"`
-	Body           string `yaml:"body,omitempty"`
-	ExpectedStatus int    `yaml:"expected_status"`
-	TimeoutSeconds int    `yaml:"timeout_seconds,omitempty"`
+	URL                  string         `yaml:"url"`
+	Method               string         `yaml:"method"`
+	Body                 string         `yaml:"body,omitempty"`
+	ExpectedStatus       int            `yaml:"expected_status"`
+	ExpectedOutput       string         `yaml:"expected_output_regexp"`
+	ExpectedOutputRegexp *regexp.Regexp `yaml:"-"`
+	TimeoutSeconds       int            `yaml:"timeout_seconds,omitempty"`
 }
 
 type BashScriptAction struct {
-	Code                 string `yaml:"code"`
-	ExpectedOutputRegexp string `yaml:"expected_output_regexp"`
+	Code                 string         `yaml:"code"`
+	ExpectedOutput       string         `yaml:"expected_output_regexp"`
+	ExpectedOutputRegexp *regexp.Regexp `yaml:"-"`
 }
