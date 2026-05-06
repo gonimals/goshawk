@@ -20,6 +20,11 @@ notification_rate_limit: 1
 template_title: "Alert: {{ .ServiceName }} is {{ if .IsActive }}UP{{ else }}DOWN{{ end }}"
 template_body: '{ "chat_id": <YOUR_CHAT_ID>, "text": "{{ .ServiceName }} is {{ if .IsActive }}active{{ else }}inactive{{ end }}. Reason: {{ .DownReason }}" }'
 
+# Default settings for active services
+default_service_frequency: 60
+default_service_max_fails: 3
+default_service_timeout: 10
+
 # Active services to monitor
 services:
   # Check if an SSH port is open
@@ -50,3 +55,14 @@ services:
     bash_script:
       code: "df -h / | awk 'NR==2 {print $5}'"
       expected_output_regexp: "^([0-8][0-9]%|90%)" # Warn if over 90%
+
+  # Send an alive message every 60 seconds to other goshawk peer
+  peer_goshawk_monitor:
+    type: web_request
+    frequency_seconds: 60
+    max_fails: 1
+    web_request:
+      url: "http://127.0.0.1:12345?key=secret_passphrase"
+      method: GET
+      expected_status: 200
+      timeout_seconds: 5

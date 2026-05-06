@@ -29,12 +29,13 @@ func (pn *PostNotifier) Notify(data config.AssetStatus) error {
 	_, body := pn.parseMessages(data)
 
 	resp, err := pn.httpClient.Post(pn.cfg.NotificationURL, "application/json", strings.NewReader(body))
+	slog.Debug("notification request sent", "url", pn.cfg.NotificationURL, "body", body)
 	if err != nil {
 		slog.Warn("could not send notification", "error", err)
 		return fmt.Errorf("could not send notification: %v", err)
 	}
 	defer resp.Body.Close()
-
+	slog.Debug("notification response received", "status", resp.StatusCode)
 	if resp.StatusCode != http.StatusOK {
 		respBody, err := io.ReadAll(resp.Body)
 		if err != nil {

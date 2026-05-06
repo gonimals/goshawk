@@ -10,34 +10,29 @@ import (
 
 	"github.com/gonimals/goshawk/pkg/config"
 	"github.com/gonimals/goshawk/pkg/notifier"
-	"github.com/gonimals/goshawk/pkg/util"
 )
 
-func TestActiveChecker(t *testing.T) {
-	servicesStatus := util.NewSyncMap[string, config.AssetStatus]()
-	servicesStatus.Set("test_service", config.AssetStatus{})
-	servicesStatus.Set("failing_service", config.AssetStatus{})
+const activeTestConfig = `
+services:
+  test_service:
+    type: bash_script
+    max_fails: 1
+    bash_script:
+      code: echo 'ok'
+      expected_output_regexp: 'ok'
+  failing_service:
+    type: bash_script
+    max_fails: 1
+    bash_script:
+      code: exit 1
+      expected_output_regexp: '.*'
+`
 
-	cfg := &config.Config{
-		Services: map[string]*config.Service{
-			"test_service": {
-				Type: "bash_script",
-				BashScript: &config.BashScriptAction{
-					Code:                 "echo 'ok'",
-					ExpectedOutputRegexp: regexp.MustCompile("ok"),
-				},
-				MaxFails: 2,
-			},
-			"failing_service": {
-				Type: "bash_script",
-				BashScript: &config.BashScriptAction{
-					Code:                 "exit 1",
-					ExpectedOutputRegexp: regexp.MustCompile(".*"),
-				},
-				MaxFails: 1,
-			},
-		},
-		ServicesStatus: servicesStatus,
+func TestActiveChecker(t *testing.T) {
+
+	cfg, err := config.ParseConfigBytes([]byte(activeTestConfig))
+	if err != nil {
+		t.Fatalf("error parsing test config: %v", err)
 	}
 
 	notif := notifier.NewTestNotifier()
@@ -47,18 +42,16 @@ func TestActiveChecker(t *testing.T) {
 	// Wait a bit for the checker to run at least one tick and check services
 	time.Sleep(1500 * time.Millisecond)
 
-	err := ac.Stop()
+	err = ac.Stop()
 	if err != nil {
 		t.Fatalf("unexpected error on stop: %v", err)
 	}
 
-	status := servicesStatus.Get("test_service")
-	if !status.IsActive {
+	if !cfg.Services["test_service"].Status.IsActive {
 		t.Errorf("expected test_service to be active")
 	}
 
-	statusFail := servicesStatus.Get("failing_service")
-	if statusFail.IsActive {
+	if cfg.Services["failing_service"].Status.IsActive {
 		t.Errorf("expected failing_service to be inactive")
 	}
 

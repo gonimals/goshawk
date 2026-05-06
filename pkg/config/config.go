@@ -84,8 +84,6 @@ func ParseConfigBytes(data []byte) (*Config, error) {
 		})
 	}
 
-	config.ServicesStatus = util.NewSyncMap[string, AssetStatus]()
-
 	// Handle default values
 	if config.DefaultServiceFrequency == 0 {
 		config.DefaultServiceFrequency = 60
@@ -137,9 +135,9 @@ func ParseConfigBytes(data []byte) (*Config, error) {
 				return nil, fmt.Errorf("could not compile regexp: %w", err)
 			}
 		}
-		config.ServicesStatus.Set(serviceName, AssetStatus{
+		service.Status = AssetStatus{
 			ServiceName: serviceName,
-		})
+		}
 	}
 
 	return &config, nil

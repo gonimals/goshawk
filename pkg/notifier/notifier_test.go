@@ -67,6 +67,10 @@ func TestTestNotifier(t *testing.T) {
 	if tn.NotificationLog[0] != expectedLog {
 		t.Errorf("Expected log %q, got %q", expectedLog, tn.NotificationLog[0])
 	}
+	retrievedLogs := tn.GetLogs()
+	if len(retrievedLogs) != 1 {
+		t.Fatalf("Expected 1 log in GetLogs(), got %d", len(retrievedLogs))
+	}
 }
 
 func TestPostNotifier(t *testing.T) {

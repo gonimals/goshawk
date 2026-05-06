@@ -8,52 +8,34 @@ import (
 	"testing"
 
 	"github.com/gonimals/goshawk/pkg/config"
-	yaml "gopkg.in/yaml.v3"
 )
 
+const testConfigPath = "../../example_config.yaml"
+const testConfigNotificationURL = "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/sendMessage"
+
 func TestLoadConfig(t *testing.T) {
-	cfgData := &config.Config{
-		NotificationURL: "http://example.com",
-		ListenAddress:   ":8080",
-		AuthenticatedHosts: map[string]string{
-			"host1": "key1",
-		},
-		HostMaxSeconds: 60,
-		Services: map[string]*config.Service{
-			"service1": {
-				Type: "tcp",
-			},
-		},
-	}
-
-	data, err := yaml.Marshal(cfgData)
+	data, err := os.ReadFile(testConfigPath)
 	if err != nil {
-		t.Fatalf("Failed to marshal config: %v", err)
-	}
-
-	tmpDir := t.TempDir()
-	configFile := filepath.Join(tmpDir, "config.json")
-	if err := os.WriteFile(configFile, data, 0644); err != nil {
-		t.Fatalf("Failed to write config file: %v", err)
+		t.Fatalf("Failed to read test config file: %v", err)
 	}
 
 	hash := sha256.Sum256(data)
 	expectedHash := hex.EncodeToString(hash[:])
 
-	cfg, err := config.LoadConfig(configFile, expectedHash)
+	cfg, err := config.LoadConfig(testConfigPath, expectedHash)
 	if err != nil {
 		t.Fatalf("LoadConfig failed: %v", err)
 	}
 
-	if cfg.NotificationURL != cfgData.NotificationURL {
-		t.Errorf("Expected URL %s, got %s", cfgData.NotificationURL, cfg.NotificationURL)
+	if cfg.NotificationURL != testConfigNotificationURL {
+		t.Errorf("Expected URL %s, got %s", testConfigNotificationURL, cfg.NotificationURL)
 	}
 
-	if cfg.HostKeys["key1"] != "host1" {
-		t.Errorf("Expected host1 for key1, got %s", cfg.HostKeys["key1"])
+	if cfg.HostKeys["secret_passphrase"] != "remote_server" {
+		t.Errorf("Expected host1 for key1, got %s", cfg.HostKeys["secret_passphrase"])
 	}
 
-	if val := cfg.ServicesStatus.Get("service1"); val.HostAddress != "" || val.ConsecutiveFails != 0 {
+	if val := cfg.HostsStatus.Get("remote_server"); val.HostAddress != "" || val.ConsecutiveFails != 0 {
 		t.Errorf("Unexpected default asset status: %+v", val)
 	}
 }

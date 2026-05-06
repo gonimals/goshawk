@@ -61,10 +61,8 @@ func (ac *ActiveChecker) checkService(serviceName string) {
 		return
 	}
 
-	oldStatus := ac.config.ServicesStatus.Get(serviceName)
-
 	if service.FrequencySeconds > 0 &&
-		time.Since(oldStatus.LastCheck) < time.Duration(service.FrequencySeconds)*time.Second {
+		time.Since(service.Status.LastCheck) < time.Duration(service.FrequencySeconds)*time.Second {
 		return
 	}
 
@@ -79,53 +77,37 @@ func (ac *ActiveChecker) checkService(serviceName string) {
 		err = fmt.Errorf("unknown action type: %s", service.Type)
 	}
 
-	status := oldStatus
-	status.LastCheck = time.Now()
+	service.Status.LastCheck = time.Now()
 
 	isActive := err == nil
-	if status.IsActive != isActive {
-		status.IsActive = isActive
-		status.ConsecutiveFails = 0
+	if service.Status.IsActive != isActive {
+		service.Status.IsActive = isActive
+		service.Status.ConsecutiveFails = 0
 		// Avoid notification if back to online before max consecutive fails
-		status.Notified = !oldStatus.Notified && status.IsActive
-		status.LastChange = time.Now()
+		service.Status.Notified = !service.Status.Notified && service.Status.IsActive
+		service.Status.LastChange = time.Now()
 		if err != nil {
-			status.DownReason = err.Error()
+			service.Status.DownReason = err.Error()
 		} else {
-			status.DownReason = ""
+			service.Status.DownReason = ""
 		}
 	}
-	if status.Notified {
-		if !ac.config.ServicesStatus.CompareAndSwap(serviceName, oldStatus, status) {
-			slog.Warn("error saving last check date", "service", serviceName)
-		}
+	if service.Status.Notified {
 		return
 	}
 
 	if isActive {
-		status.Notified = true
-		if ac.config.ServicesStatus.CompareAndSwap(serviceName, oldStatus, status) {
-			go ac.notifier.Notify(status)
-		} else {
-			slog.Warn("error saving current status", "error", err, "service", serviceName)
-		}
+		service.Status.Notified = true
+		go ac.notifier.Notify(service.Status)
 		return
 	}
-	status.ConsecutiveFails++
-	status.LastChange = time.Now()
-	if !ac.config.ServicesStatus.CompareAndSwap(serviceName, oldStatus, status) {
-		slog.Warn("error saving current status", "error", err, "service", serviceName)
+	service.Status.ConsecutiveFails++
+	service.Status.LastChange = time.Now()
+	if service.Status.ConsecutiveFails < service.MaxFails {
 		return
 	}
-	if status.ConsecutiveFails < service.MaxFails {
-		return
-	}
-	status.Notified = true
-	if !ac.config.ServicesStatus.CompareAndSwap(serviceName, oldStatus, status) {
-		slog.Warn("error saving current status", "error", err, "service", serviceName)
-		return
-	}
-	go ac.notifier.Notify(status)
+	service.Status.Notified = true
+	go ac.notifier.Notify(service.Status)
 }
 
 func (ac *ActiveChecker) CheckTCP(action *config.TCPAction) error {

@@ -44,8 +44,7 @@ type Config struct {
 	TemplateBody       string             `yaml:"template_body"`
 	TemplateBodyParsed *template.Template `yaml:"-"`
 
-	ServicesStatus *util.SyncMap[string, AssetStatus] `yaml:"-"`
-	HostsStatus    *util.SyncMap[string, AssetStatus] `yaml:"-"`
+	HostsStatus *util.SyncMap[string, AssetStatus] `yaml:"-"`
 }
 
 // AssetStatus holds the state of a service or a host
@@ -68,6 +67,7 @@ type Service struct {
 	BashScript       *BashScriptAction `yaml:"bash_script,omitempty"`
 	FrequencySeconds int               `yaml:"frequency_seconds"`
 	MaxFails         int               `yaml:"max_fails"`
+	Status           AssetStatus       `yaml:"-"`
 }
 
 type TCPAction struct {
