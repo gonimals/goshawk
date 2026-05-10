@@ -1,7 +1,16 @@
 # yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+version: 2
+
 before:
   hooks:
     - go mod tidy
+upx:
+  - enabled: true
+    goos: [linux]
+    goarch: [arm64, amd64]
+    compress: 1
+    lzma: false
+    brute: false
 builds:
   - env:
       - CGO_ENABLED=0
@@ -17,14 +26,28 @@ builds:
     ldflags:
       - -s -w -X main.version={{.Version}}
 archives:
-  - format: tar.gz
-    # use zip for windows
+  - formats: ["tar.gz"]
     format_overrides:
       - goos: windows
-        format: zip
+        formats: ["zip"]
+nfpms:
+  - formats:
+      - rpm
+    bindir: /usr/local/sbin
+    description: "Goshawk server monitoring tool"
+    maintainer: "Goshawk"
+    contents:
+      - src: deploy/goshawk.service
+        dst: /usr/lib/systemd/system/goshawk.service
+      - src: example_config.yaml
+        dst: /etc/goshawk.yml
+    rpm:
+      signature:
+        key_file: private.key
+    file_name_template: "{{ .ProjectName }}-{{ .Version }}-1.{{ .Arch }}"
 checksum:
   name_template: 'checksums.txt'
 snapshot:
-  name_template: "{{ incpatch .Version }}-next"
+  version_template: "{{ incpatch .Version }}-next"
 changelog:
   use: github-native
