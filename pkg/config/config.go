@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"os"
 	"regexp"
+	"time"
 
 	yaml "gopkg.in/yaml.v3"
 
@@ -81,6 +82,9 @@ func ParseConfigBytes(data []byte) (*Config, error) {
 	for host := range config.AuthenticatedHosts {
 		config.HostsStatus.Set(host, AssetStatus{
 			ServiceName: host,
+			IsActive:    true,
+			Notified:    true,
+			LastCheck:   time.Now(),
 		})
 	}
 
@@ -137,6 +141,8 @@ func ParseConfigBytes(data []byte) (*Config, error) {
 		}
 		service.Status = AssetStatus{
 			ServiceName: serviceName,
+			IsActive:    true,
+			Notified:    true,
 		}
 	}
 

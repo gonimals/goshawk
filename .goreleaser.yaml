@@ -41,6 +41,8 @@ nfpms:
         dst: /usr/lib/systemd/system/goshawk.service
       - src: example_config.yaml
         dst: /etc/goshawk.yml
+        file_info:
+          mode: 0600
     rpm:
       signature:
         key_file: private.key

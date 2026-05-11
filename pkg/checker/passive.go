@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"regexp"
 	"sync"
 	"time"
 
@@ -76,6 +77,8 @@ runLoop:
 	return err
 }
 
+var remoteAddressPortRegexp = regexp.MustCompile(`:[0-9]+$`)
+
 func (pc *PassiveChecker) httpPassiveEndpoint(w http.ResponseWriter, r *http.Request) {
 	providedKey := r.URL.Query().Get("key")
 	if providedKey == "" {
@@ -93,17 +96,20 @@ func (pc *PassiveChecker) httpPassiveEndpoint(w http.ResponseWriter, r *http.Req
 
 	fmt.Fprint(w, "auth check ok")
 	slog.Debug("http auth success", "host", authHost)
-	pc.updateHostEntry(authHost, r.RemoteAddr)
+	remoteIP := remoteAddressPortRegexp.ReplaceAllString(r.RemoteAddr, "")
+	pc.updateOnlineHostEntry(authHost, remoteIP)
 }
 
-func (pc *PassiveChecker) updateHostEntry(host, remoteAddress string) {
+func (pc *PassiveChecker) updateOnlineHostEntry(host, remoteAddress string) {
 	oldStatus := pc.config.HostsStatus.Get(host)
 	status := oldStatus
 	status.LastCheck = time.Now()
-	if !status.IsActive || status.HostAddress != remoteAddress {
+	if !status.IsActive {
 		status.IsActive = true
-		status.HostAddress = remoteAddress
 		go pc.notifier.Notify(status)
+	}
+	if status.HostAddress != remoteAddress {
+		status.HostAddress = remoteAddress
 	}
 	if !pc.config.HostsStatus.CompareAndSwap(host, oldStatus, status) {
 		slog.Warn("error saving current status", "host", host)

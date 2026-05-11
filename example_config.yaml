@@ -1,6 +1,6 @@
 
-# The HTTP endpoint where goshawk will listen for passive checks
-listen_address: "127.0.0.1:12345"
+# The HTTP endpoint where goshawk will listen for passive checks. 47495 are the numeric buttons to write GSHCK
+listen_address: "127.0.0.1:47495"
 
 # Maximum time (in seconds) allowed without a message from an authenticated host before it is considered down
 host_max_seconds: 60

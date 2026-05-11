@@ -6,7 +6,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/local/sbin/goshawk -config /etc/goshawk.yml
+ExecStart=/usr/local/sbin/goshawk -config /etc/goshawk.yml -v
 Restart=always
 RestartSec=5s
 User=root

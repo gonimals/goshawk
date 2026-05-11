@@ -57,7 +57,8 @@ func (ac *ActiveChecker) checkService(serviceName string) {
 	if service.Mutex.TryLock() {
 		defer service.Mutex.Unlock()
 	} else {
-		slog.Debug("service already being checked", "name", serviceName)
+		// avoid being too verbose
+		//slog.Debug("service already being checked", "name", serviceName)
 		return
 	}
 
@@ -65,6 +66,7 @@ func (ac *ActiveChecker) checkService(serviceName string) {
 		time.Since(service.Status.LastCheck) < time.Duration(service.FrequencySeconds)*time.Second {
 		return
 	}
+	slog.Debug("checking service", "name", serviceName)
 
 	switch service.Type {
 	case "tcp":
@@ -77,9 +79,8 @@ func (ac *ActiveChecker) checkService(serviceName string) {
 		err = fmt.Errorf("unknown action type: %s", service.Type)
 	}
 
-	service.Status.LastCheck = time.Now()
-
 	isActive := err == nil
+	slog.Debug("service checked", "name", serviceName, "active", isActive, "error", err)
 	if service.Status.IsActive != isActive {
 		service.Status.IsActive = isActive
 		service.Status.ConsecutiveFails = 0
@@ -93,20 +94,22 @@ func (ac *ActiveChecker) checkService(serviceName string) {
 		}
 	}
 	if service.Status.Notified {
+		service.Status.LastCheck = time.Now()
 		return
 	}
 
 	if isActive {
 		service.Status.Notified = true
+		service.Status.LastCheck = time.Now()
 		go ac.notifier.Notify(service.Status)
 		return
 	}
 	service.Status.ConsecutiveFails++
-	service.Status.LastChange = time.Now()
 	if service.Status.ConsecutiveFails < service.MaxFails {
-		return
+		return // the check will run again immediately
 	}
 	service.Status.Notified = true
+	service.Status.LastCheck = time.Now()
 	go ac.notifier.Notify(service.Status)
 }
 
