@@ -42,10 +42,10 @@ curl -sL "$URL" -o "$TMP_DIR/goshawk.tar.gz"
 echo "Extracting..."
 tar -xzf "$TMP_DIR/goshawk.tar.gz" -C "$TMP_DIR"
 
-echo "Installing binary to /usr/local/bin/goshawk"
-mkdir -p /usr/local/bin
-cp "$TMP_DIR/goshawk" /usr/local/bin/goshawk
-chmod +x /usr/local/bin/goshawk
+echo "Installing binary to /usr/bin/goshawk"
+mkdir -p /usr/bin
+cp "$TMP_DIR/goshawk" /usr/bin/goshawk
+chmod +x /usr/bin/goshawk
 
 rm -rf "$TMP_DIR"
 
