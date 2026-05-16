@@ -60,11 +60,11 @@ jobs:
           mkdir -p gonimals.github.io/rpm/x86_64 gonimals.github.io/rpm/aarch64
           mv dist/*.amd64.rpm gonimals.github.io/rpm/x86_64/
           mv dist/*.arm64.rpm gonimals.github.io/rpm/aarch64/
-          
+
           docker run --rm \
             -v ${{ github.workspace }}/gonimals.github.io/rpm:/rpm \
             almalinux:latest bash -c "dnf install -y createrepo && cd /rpm/x86_64 && createrepo . && cd /rpm/aarch64 && createrepo ."
-            
+
           sudo chown -R $USER:$USER gonimals.github.io/rpm
 
       - name: Commit and push RPM repository
