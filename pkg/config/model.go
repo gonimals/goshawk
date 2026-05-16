@@ -65,14 +65,14 @@ type Service struct {
 	TCP              *TCPAction        `yaml:"tcp,omitempty"`
 	WebRequest       *WebRequestAction `yaml:"web_request,omitempty"`
 	BashScript       *BashScriptAction `yaml:"bash_script,omitempty"`
-	FrequencySeconds int               `yaml:"frequency_seconds"`
-	MaxFails         int               `yaml:"max_fails"`
+	FrequencySeconds int               `yaml:"frequency_seconds,omitempty"`
+	MaxFails         int               `yaml:"max_fails,omitempty"`
+	TimeoutSeconds   int               `yaml:"timeout_seconds,omitempty"`
 	Status           AssetStatus       `yaml:"-"`
 }
 
 type TCPAction struct {
-	Address        string `yaml:"address"`
-	TimeoutSeconds int    `yaml:"timeout_seconds,omitempty"`
+	Address string `yaml:"address"`
 }
 
 type WebRequestAction struct {
@@ -82,7 +82,6 @@ type WebRequestAction struct {
 	ExpectedStatus       int            `yaml:"expected_status"`
 	ExpectedOutput       string         `yaml:"expected_output_regexp"`
 	ExpectedOutputRegexp *regexp.Regexp `yaml:"-"`
-	TimeoutSeconds       int            `yaml:"timeout_seconds,omitempty"`
 }
 
 type BashScriptAction struct {

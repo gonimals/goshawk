@@ -113,15 +113,10 @@ func ParseConfigBytes(data []byte) (*Config, error) {
 		if service.MaxFails == 0 {
 			service.MaxFails = config.DefaultServiceMaxFails
 		}
-		if service.TCP != nil {
-			if service.TCP.TimeoutSeconds == 0 {
-				service.TCP.TimeoutSeconds = config.DefaultServiceTimeout
-			}
+		if service.TimeoutSeconds == 0 {
+			service.TimeoutSeconds = config.DefaultServiceTimeout
 		}
 		if service.WebRequest != nil {
-			if service.WebRequest.TimeoutSeconds == 0 {
-				service.WebRequest.TimeoutSeconds = config.DefaultServiceTimeout
-			}
 			if service.WebRequest.ExpectedOutput == "" {
 				service.WebRequest.ExpectedOutput = ".*"
 			}

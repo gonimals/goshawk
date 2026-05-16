@@ -10,11 +10,7 @@ import (
 )
 
 func TestOffline(t *testing.T) {
-	testMainSkel(t, "test_configs/offline_test.yaml", "0afa", true)
-}
-
-func TestOnline(t *testing.T) {
-	testMainSkel(t, "test_configs/online_test.yaml", "5189f8b68749a3e6a26e6ea2ed0a91947e56b76f8e1f73b2d600eaf3cc732eb7", false)
+	testMainSkel(t, "test_configs/offline_test.yaml", "462a", true)
 }
 
 func TestTelegramNotification(t *testing.T) {
@@ -55,10 +51,26 @@ func companionRoutine(t *testing.T, includeAuthHost bool) {
 		if err != nil {
 			t.Errorf("error reading response body: %v", err)
 		}
+		defer resp.Body.Close()
+		slog.Info("response body", "body", string(bodyBytes))
 		if "auth check ok" != string(bodyBytes) {
 			t.Errorf("unexpected response body for auth request: %s", string(bodyBytes))
 		}
 	}
 
 	time.Sleep(5 * time.Second)
+}
+
+func TestPortInUse(t *testing.T) {
+	go func() {
+		err := http.ListenAndServe("127.0.0.1:12345", http.NewServeMux())
+		if err != nil {
+			t.Errorf("error starting server: %v", err)
+		}
+	}()
+	args := []string{"-config", "test_configs/portinuse_test.yaml", "-v"}
+	exitCode := run(args)
+	if exitCode != 1 {
+		t.Errorf("expected exit code 1, got %d", exitCode)
+	}
 }

@@ -1,9 +1,9 @@
 
 # The HTTP endpoint where goshawk will listen for passive checks. 47495 are the numeric buttons to write GSHCK
-listen_address: "127.0.0.1:47495"
+listen_address: "0.0.0.0:47495"
 
 # Maximum time (in seconds) allowed without a message from an authenticated host before it is considered down
-host_max_seconds: 60
+host_max_seconds: 120
 
 # Hosts allowed to send passive alive messages (format: "host_name": "passphrase")
 authenticated_hosts:
@@ -30,28 +30,24 @@ services:
   # Check if an SSH port is open
   ssh_monitor:
     type: tcp
+    # Every service can overwrite the default values for frequency, max_fails and timeout
     frequency_seconds: 5
     max_fails: 2
+    timeout_seconds: 2
     tcp:
       address: "127.0.0.1:22"
-      timeout_seconds: 2
 
   # Check if a web service is responding
   web_api_monitor:
     type: web_request
-    frequency_seconds: 10
-    max_fails: 3
     web_request:
       url: "http://kernel.org"
       method: GET
       expected_status: 301
-      timeout_seconds: 5
 
   # Run a custom bash script and check its output with a regex
   disk_space_monitor:
     type: bash_script
-    frequency_seconds: 60
-    max_fails: 1
     bash_script:
       code: "df -h / | awk 'NR==2 {print $5}'"
       expected_output_regexp: "^([0-8][0-9]%|90%)" # Warn if over 90%
@@ -59,10 +55,7 @@ services:
   # Send an alive message every 60 seconds to other goshawk peer
   peer_goshawk_monitor:
     type: web_request
-    frequency_seconds: 60
-    max_fails: 1
     web_request:
       url: "http://127.0.0.1:12345?key=secret_passphrase"
       method: GET
       expected_status: 200
-      timeout_seconds: 5

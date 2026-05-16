@@ -51,18 +51,21 @@ func run(args []string) int {
 		return 1
 	}
 	slog.Info("received interrupt", "signal", sig)
+	returnCode := 0
 	err = activeChecker.Stop()
 	if err != nil {
 		slog.Warn("error stopping active checker", "error", err)
+		returnCode = 1
 	} else {
 		slog.Info("active checker stopped")
 	}
 	err = passiveChecker.Stop()
 	if err != nil {
 		slog.Warn("error stopping passive checker", "error", err)
+		returnCode = 1
 	} else {
 		slog.Info("passive checker stopped")
 	}
 	slog.Info("exiting")
-	return 0
+	return returnCode
 }

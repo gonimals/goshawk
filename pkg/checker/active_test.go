@@ -47,13 +47,17 @@ func TestActiveChecker(t *testing.T) {
 		t.Fatalf("unexpected error on stop: %v", err)
 	}
 
+	cfg.Services["test_service"].Mutex.Lock()
 	if !cfg.Services["test_service"].Status.IsActive {
 		t.Errorf("expected test_service to be active")
 	}
+	cfg.Services["test_service"].Mutex.Unlock()
 
+	cfg.Services["failing_service"].Mutex.Lock()
 	if cfg.Services["failing_service"].Status.IsActive {
 		t.Errorf("expected failing_service to be inactive")
 	}
+	cfg.Services["failing_service"].Mutex.Unlock()
 
 	testNotif, _ := notif.(*notifier.TestNotifier)
 	if len(testNotif.GetLogs()) == 0 {
@@ -83,7 +87,7 @@ func testCheckTCP(t *testing.T, ac *ActiveChecker) {
 
 	err := ac.CheckTCP(&config.TCPAction{
 		Address: address,
-	})
+	}, 10)
 	if err != nil {
 		t.Fatalf("error checking TCP: %v", err)
 	}
@@ -100,25 +104,49 @@ func testCheckWebRequest(t *testing.T, ac *ActiveChecker) {
 		URL:            fmt.Sprintf("http://%s/", address),
 		Method:         "GET",
 		ExpectedStatus: 200,
-	})
+	}, 10)
 	if err != nil {
 		t.Fatalf("error checking web request: %v", err)
 	}
+}
 
+// TestCheckWebRequestNoAnswer assumes the port 32345 will not answer
+func TestCheckWebRequestNoAnswer(t *testing.T) {
+	configData := &config.Config{}
+	ac := &ActiveChecker{
+		baseDaemon: baseDaemon{
+			config:   configData,
+			notifier: notifier.NewNotifier(configData),
+		},
+	}
+	timeout := 10
+	checkStart := time.Now()
+	err := ac.CheckWebRequest(&config.WebRequestAction{
+		URL:            "http://127.0.0.1:32345/",
+		Method:         "GET",
+		ExpectedStatus: 200,
+	}, timeout)
+	checkEnd := time.Now()
+	if err == nil {
+		t.Fatalf("error missing checking web request: %v", err)
+	}
+	if checkEnd.Sub(checkStart) > time.Duration(timeout+1)*time.Second {
+		t.Fatalf("check took too long: %v", checkEnd.Sub(checkStart))
+	}
 }
 
 func testCheckBashScript(t *testing.T, ac *ActiveChecker) {
 	err := ac.CheckBashScript(&config.BashScriptAction{
 		Code:                 "echo 'hello world'",
 		ExpectedOutputRegexp: regexp.MustCompile("^hello world\n$"),
-	})
+	}, 10)
 	if err != nil {
 		t.Fatalf("error checking bash script: %v", err)
 	}
 	err = ac.CheckBashScript(&config.BashScriptAction{
 		Code:                 "echo 'hello world'",
 		ExpectedOutputRegexp: regexp.MustCompile("^hello [a-z]{4}"),
-	})
+	}, 10)
 	if err != nil {
 		t.Fatalf("error checking bash script: %v", err)
 	}
@@ -126,7 +154,7 @@ func testCheckBashScript(t *testing.T, ac *ActiveChecker) {
 	err = ac.CheckBashScript(&config.BashScriptAction{
 		Code:                 "echo 'hello world'",
 		ExpectedOutputRegexp: regexp.MustCompile("^goodbye\n$"),
-	})
+	}, 10)
 	if err == nil {
 		t.Fatalf("expected error checking bash script with wrong output")
 	}
@@ -134,7 +162,7 @@ func testCheckBashScript(t *testing.T, ac *ActiveChecker) {
 	err = ac.CheckBashScript(&config.BashScriptAction{
 		Code:                 "exit 1",
 		ExpectedOutputRegexp: regexp.MustCompile(".*"),
-	})
+	}, 10)
 	if err == nil {
 		t.Fatalf("expected error checking bash script that fails")
 	}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"os"
 	"regexp"
 	"sync"
 	"time"
@@ -34,6 +35,7 @@ func NewPassiveChecker(config *config.Config, notifier notifier.Notifier) *Passi
 }
 
 func (pc *PassiveChecker) run() error {
+	slog.Debug("starting passive checker")
 	defer pc.wg.Done()
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", pc.httpPassiveEndpoint)
@@ -49,8 +51,17 @@ func (pc *PassiveChecker) run() error {
 	var err error
 	go func() {
 		err = srv.ListenAndServe()
-		if err == http.ErrServerClosed {
-			err = nil
+		if err != nil && err != http.ErrServerClosed {
+			pc.err = err
+			slog.Error("error running passive checker: sending interrupt signal")
+			process, err := os.FindProcess(os.Getpid())
+			if err != nil {
+				slog.Error("error finding process", "error", err)
+			}
+			err = process.Signal(os.Interrupt)
+			if err != nil {
+				slog.Error("error sending interrupt signal", "error", err)
+			}
 		}
 		pc.exitWG.Done()
 	}()

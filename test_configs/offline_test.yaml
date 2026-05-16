@@ -18,6 +18,12 @@ services:
       url: "http://127.0.0.1:12345/"
       method: GET
       expected_status: 200
+  web_32345:
+    type: web_request
+    web_request:
+      url: "http://127.0.0.1:32345/"
+      method: GET
+      expected_status: 200
   bash_echo:
     type: bash_script
     bash_script:

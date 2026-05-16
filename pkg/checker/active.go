@@ -1,6 +1,7 @@
 package checker
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log/slog"
@@ -70,11 +71,11 @@ func (ac *ActiveChecker) checkService(serviceName string) {
 
 	switch service.Type {
 	case "tcp":
-		err = ac.CheckTCP(service.TCP)
+		err = ac.CheckTCP(service.TCP, service.TimeoutSeconds)
 	case "web_request":
-		err = ac.CheckWebRequest(service.WebRequest)
+		err = ac.CheckWebRequest(service.WebRequest, service.TimeoutSeconds)
 	case "bash_script":
-		err = ac.CheckBashScript(service.BashScript)
+		err = ac.CheckBashScript(service.BashScript, service.TimeoutSeconds)
 	default:
 		err = fmt.Errorf("unknown action type: %s", service.Type)
 	}
@@ -113,16 +114,13 @@ func (ac *ActiveChecker) checkService(serviceName string) {
 	go ac.notifier.Notify(service.Status)
 }
 
-func (ac *ActiveChecker) CheckTCP(action *config.TCPAction) error {
+func (ac *ActiveChecker) CheckTCP(action *config.TCPAction, timeoutSeconds int) error {
 	defer func() {
 		if recovered := recover(); recovered != nil {
 			slog.Error("panic running check", "recovered", recovered)
 		}
 	}()
-	timeoutSeconds := action.TimeoutSeconds
-	if timeoutSeconds == 0 {
-		timeoutSeconds = ac.config.DefaultServiceTimeout
-	}
+
 	conn, err := net.DialTimeout("tcp", action.Address, time.Second*time.Duration(timeoutSeconds))
 	if err == nil {
 		conn.Close()
@@ -130,16 +128,15 @@ func (ac *ActiveChecker) CheckTCP(action *config.TCPAction) error {
 	return err
 }
 
-func (ac *ActiveChecker) CheckWebRequest(action *config.WebRequestAction) error {
-	req, err := http.NewRequest(action.Method, action.URL, strings.NewReader(action.Body))
+func (ac *ActiveChecker) CheckWebRequest(action *config.WebRequestAction, timeoutSeconds int) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(timeoutSeconds))
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, action.Method, action.URL, strings.NewReader(action.Body))
 	if err != nil {
 		return err
 	}
 
-	timeoutSeconds := action.TimeoutSeconds
-	if timeoutSeconds == 0 {
-		timeoutSeconds = ac.config.DefaultServiceTimeout
-	}
 	client := &http.Client{
 		Timeout: time.Second * time.Duration(timeoutSeconds),
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
@@ -171,10 +168,15 @@ func (ac *ActiveChecker) CheckWebRequest(action *config.WebRequestAction) error 
 	return nil
 }
 
-func (ac *ActiveChecker) CheckBashScript(action *config.BashScriptAction) error {
-	cmd := exec.Command("bash", "-c", action.Code)
+func (ac *ActiveChecker) CheckBashScript(action *config.BashScriptAction, timeoutSeconds int) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(timeoutSeconds))
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "bash", "-c", action.Code)
 	output, err := cmd.CombinedOutput()
-	if err != nil {
+	if ctx.Err() == context.DeadlineExceeded {
+		return fmt.Errorf("script execution timed out after %d seconds", timeoutSeconds)
+	} else if err != nil {
 		return fmt.Errorf("script execution failed: %w - %s", err, output)
 	}
 

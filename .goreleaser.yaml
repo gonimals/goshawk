@@ -33,6 +33,11 @@ archives:
     format_overrides:
       - goos: windows
         formats: ["zip"]
+    files:
+      - README*
+      - LICENSE*
+      - deploy/goshawk.service
+      - example_config.yaml
 
 nfpms:
   - formats:
@@ -72,6 +77,10 @@ aurs:
     options:
       - "!strip"
       - "!debug"
+    package: |-
+      install -Dm755 goshawk "${pkgdir}/usr/bin/goshawk"
+      install -Dm644 deploy/goshawk.service "${pkgdir}/usr/lib/systemd/system/goshawk.service"
+      install -Dm600 example_config.yaml "${pkgdir}/etc/goshawk.yml"
 
 checksum:
   name_template: 'checksums.txt'
