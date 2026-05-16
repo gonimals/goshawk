@@ -4,6 +4,7 @@ version: 2
 before:
   hooks:
     - go mod tidy
+
 upx:
   - enabled: true
     goos: [linux]
@@ -11,6 +12,7 @@ upx:
     compress: 1
     lzma: false
     brute: false
+
 builds:
   - env:
       - CGO_ENABLED=0
@@ -25,28 +27,49 @@ builds:
       - -trimpath
     ldflags:
       - -s -w -X main.version={{.Version}}
+
 archives:
   - formats: ["tar.gz"]
     format_overrides:
       - goos: windows
         formats: ["zip"]
+
 nfpms:
   - formats:
       - rpm
-    bindir: /usr/local/sbin
+      - archlinux
+    bindir: /usr/local/bin
     description: "Goshawk server monitoring tool"
     maintainer: "Goshawk"
+    license: "MIT"
     contents:
       - src: deploy/goshawk.service
         dst: /usr/lib/systemd/system/goshawk.service
       - src: example_config.yaml
         dst: /etc/goshawk.yml
+        type: "config|noreplace"
         file_info:
           mode: 0600
     rpm:
       signature:
         key_file: private.key
     file_name_template: "{{ .ProjectName }}-{{ .Version }}-1.{{ .Arch }}"
+
+aurs:
+  - name: goshawk-bin
+    disable: '{{ eq (getenv "AUR_KEY") "" }}'
+    homepage: "https://github.com/gonimals/goshawk"
+    description: "Goshawk server monitoring tool"
+    maintainers:
+      - "nicovell3 <nicovell3@gmail.com>"
+    license: "MIT"
+    private_key: '{{ getenv "AUR_KEY" }}'
+    git_url: 'ssh://aur@aur.archlinux.org/goshawk-bin.git'
+    provides:
+      - goshawk
+    conflicts:
+      - goshawk
+
 checksum:
   name_template: 'checksums.txt'
 snapshot:

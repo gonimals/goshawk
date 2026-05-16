@@ -45,6 +45,7 @@ jobs:
           args: ${{ env.GITHUB_TOKEN == '' && 'release --snapshot --skip=publish --clean' || 'release --clean' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AUR_KEY: ${{ secrets.AUR_KEY }}
 
       - name: Checkout gonimals.github.io
         uses: actions/checkout@v6
