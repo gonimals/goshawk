@@ -38,7 +38,7 @@ nfpms:
   - formats:
       - rpm
       - archlinux
-    bindir: /usr/local/bin
+    bindir: /usr/bin
     description: "Goshawk server monitoring tool"
     maintainer: "Goshawk"
     license: "MIT"
