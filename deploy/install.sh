@@ -62,7 +62,7 @@ chmod 0600 /etc/goshawk.yml
 
 if [ -d /etc/systemd/system ]; then
     echo "Setting up systemd service..."
-    curl -sL "https://raw.githubusercontent.com/gonimals/goshawk/main/deploy/goshawk.service" -o /etc/systemd/system/goshawk.service
+    curl -sL "https://raw.githubusercontent.com/gonimals/goshawk/main/deploy/goshawk.service" -o /usr/lib/systemd/system/goshawk.service
 
     systemctl daemon-reload
 else

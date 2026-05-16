@@ -74,10 +74,10 @@ aurs:
       - goshawk
     conflicts:
       - goshawk
-    options:
-      - "!strip"
-      - "!debug"
+    backup:
+      - etc/goshawk.yml
     package: |-
+      options=('!strip' '!debug')
       install -Dm755 goshawk "${pkgdir}/usr/bin/goshawk"
       install -Dm644 deploy/goshawk.service "${pkgdir}/usr/lib/systemd/system/goshawk.service"
       install -Dm600 example_config.yaml "${pkgdir}/etc/goshawk.yml"
