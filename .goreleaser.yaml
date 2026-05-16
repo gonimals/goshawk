@@ -1,6 +1,9 @@
 # yaml-language-server: $schema=https://goreleaser.com/static/schema.json
 version: 2
 
+env:
+  - AUR_KEY=
+
 before:
   hooks:
     - go mod tidy
@@ -57,13 +60,13 @@ nfpms:
 
 aurs:
   - name: goshawk-bin
-    disable: '{{ eq (getenv "AUR_KEY") "" }}'
+    disable: '{{ eq .Env.AUR_KEY "" }}'
     homepage: "https://github.com/gonimals/goshawk"
     description: "Goshawk server monitoring tool"
     maintainers:
       - "nicovell3 <nicovell3@gmail.com>"
     license: "MIT"
-    private_key: '{{ getenv "AUR_KEY" }}'
+    private_key: '{{ .Env.AUR_KEY }}'
     git_url: 'ssh://aur@aur.archlinux.org/goshawk-bin.git'
     provides:
       - goshawk
